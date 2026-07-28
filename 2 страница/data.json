@@ -1,34 +1,77 @@
 {
   "concept_gallery": [
-    { "image": "assets/DSC_1726.JPG" },
-    { "image": "assets/DSC_1785.JPG" },
-    { "image": "assets/DSC_1803.JPG" },
-    { "image": "assets/DSC_1824.JPG" }
+    {
+      "image": "assets/DSC_1726.JPG"
+    },
+    {
+      "image": "assets/DSC_1785.JPG"
+    },
+    {
+      "image": "assets/DSC_1803.JPG"
+    },
+    {
+      "image": "assets/DSC_1824.JPG"
+    },
+    {
+      "image": "/assets/d6fccd9bfc3089c7937edc73315ffea0.jpg"
+    }
   ],
   "decor_gallery": [
-    { "image": "assets/DSC_1853.JPG" },
-    { "image": "assets/DSC_1855.JPG" },
-    { "image": "assets/DSC_1862.JPG" },
-    { "image": "assets/DSC_1875.JPG" }
+    {
+      "image": "assets/DSC_1853.JPG"
+    },
+    {
+      "image": "assets/DSC_1855.JPG"
+    },
+    {
+      "image": "assets/DSC_1862.JPG"
+    },
+    {
+      "image": "assets/DSC_1875.JPG"
+    }
   ],
   "guests_gallery": [
-    { "image": "assets/DSC_1894.JPG" },
-    { "image": "assets/DSC_1923.JPG" },
-    { "image": "assets/DSC_1939.JPG" },
-    { "image": "assets/DSC_1954.JPG" }
+    {
+      "image": "assets/DSC_1894.JPG"
+    },
+    {
+      "image": "assets/DSC_1923.JPG"
+    },
+    {
+      "image": "assets/DSC_1939.JPG"
+    },
+    {
+      "image": "assets/DSC_1954.JPG"
+    }
   ],
   "digital_gallery": [
-    { "image": "assets/DSC_1972.JPG" },
-    { "image": "assets/DSC_1978.JPG" },
-    { "image": "assets/DSC_1979.JPG" },
-    { "image": "assets/DSC_1988.JPG" }
+    {
+      "image": "assets/DSC_1972.JPG"
+    },
+    {
+      "image": "assets/DSC_1978.JPG"
+    },
+    {
+      "image": "assets/DSC_1979.JPG"
+    },
+    {
+      "image": "assets/DSC_1988.JPG"
+    }
   ],
   "lineup_gallery": [
-    { "image": "assets/DSC_2021.JPG" },
-    { "image": "assets/DSC_2081.JPG" }
+    {
+      "image": "assets/DSC_2021.JPG"
+    },
+    {
+      "image": "assets/DSC_2081.JPG"
+    }
   ],
   "cake_gallery": [
-    { "image": "assets/DSC_1824.JPG" },
-    { "image": "assets/DSC_1862.JPG" }
+    {
+      "image": "assets/DSC_1824.JPG"
+    },
+    {
+      "image": "assets/DSC_1862.JPG"
+    }
   ]
 }
