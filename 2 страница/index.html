@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bureau | Premium Events</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        bureau: '#1d2ae6',
+                        dark: '#030303'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Инициализация базовой физики среды */
+        body {
+            background-color: #030303;
+            color: #f5f5f5;
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        /* Кастомный скроллбар */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030303;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1d2ae6;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2a38ff;
+        }
+
+        /* Контейнеры для параллакса и масок */
+        .img-wrapper {
+            position: relative;
+            overflow: hidden;
+            /* clip-path и scale устанавливаются через GSAP */
+            will-change: transform, clip-path;
+        }
+        
+        .img-wrapper img {
+            width: 100%;
+            height: 120%; /* Запас высоты для эффекта параллакса */
+            object-fit: cover;
+            position: absolute;
+            top: -10%; /* Смещение для параллакса */
+            left: 0;
+            will-change: transform;
+        }
+
+        /* Пропорции для асимметричной сетки */
+        .aspect-portrait { aspect-ratio: 3/4; }
+        .aspect-landscape { aspect-ratio: 16/9; }
+        .aspect-square { aspect-ratio: 1/1; }
+
+        /* Сетка для лишних фото */
+        .overflow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+
+    </style>
+</head>
+<body class="antialiased selection:bg-bureau selection:text-white">
+
+    <!-- Hero Section (Главный экран) -->
+    <section class="h-screen flex flex-col justify-center items-center px-6 md:px-12 relative z-10">
+        <img src="logo.png" alt="Bureau" class="w-auto h-auto max-w-[90vw] max-h-[50vh] object-contain">
+    </section>
+
+
+
+    <!-- Контейнер секций — заполняется из events.json -->
+    <div id="sectionsContainer"></div>
+
+    <!-- GSAP, ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <script>
+    (function() {
+        // ═══════════════════════════════════════
+        // Шаблоны секций — точные копии оригинала
+        // ═══════════════════════════════════════
+
+        function photoEl(src, classes) {
+            if (!src) return '';
+            return `<div class="img-wrapper ${classes}"><img src="${src}" alt="" loading="lazy"></div>`;
+        }
+
+        // Секция 1: Концепция
+        function layoutConcept(photos) {
+            const p = photos;
+            return `
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
+                <div class="md:col-span-5 md:col-start-2">
+                    ${photoEl(p[0], 'aspect-portrait rounded-sm')}
+                    ${photoEl(p[1], 'aspect-square rounded-sm mt-8 w-3/4 md:ml-auto')}
+                </div>
+                <div class="md:col-span-5 flex flex-col gap-4 md:gap-12 md:mt-32">
+                    ${photoEl(p[2], 'aspect-square rounded-sm')}
+                    ${photoEl(p[3], 'aspect-landscape rounded-sm')}
+                </div>
+            </div>`;
+        }
+
+        // Секция 2: Декор
+        function layoutDecor(photos) {
+            const p = photos;
+            return `
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
+                <div class="md:col-span-10 md:col-start-2">
+                    ${photoEl(p[0], 'aspect-landscape rounded-sm')}
+                </div>
+                <div class="md:col-span-4 md:col-start-3">
+                    ${photoEl(p[1], 'aspect-portrait rounded-sm')}
+                </div>
+                <div class="md:col-span-4 md:mt-24 flex flex-col gap-12">
+                    ${photoEl(p[2], 'aspect-portrait rounded-sm')}
+                    ${photoEl(p[3], 'aspect-square rounded-sm')}
+                </div>
+            </div>`;
+        }
+
+        // Секция 3: Гости & Дресс-код
+        function layoutGuests(photos) {
+            const p = photos;
+            return `
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12 items-center">
+                <div class="md:col-span-4 md:col-start-2">
+                    ${photoEl(p[0], 'aspect-portrait rounded-sm')}
+                    ${photoEl(p[1], 'aspect-square rounded-sm mt-12 w-4/5')}
+                </div>
+                <div class="md:col-span-6">
+                    ${photoEl(p[2], 'aspect-square rounded-sm mb-8')}
+                    ${photoEl(p[3], 'aspect-landscape rounded-sm md:w-3/4 md:ml-auto')}
+                </div>
+            </div>`;
+        }
+
+        // Секция 4: Диджитал продакшн
+        function layoutDigital(photos) {
+            const p = photos;
+            return `
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
+                <div class="md:col-span-8 md:col-start-3 mb-8">
+                    ${photoEl(p[0], 'aspect-landscape rounded-sm')}
+                </div>
+                <div class="md:col-span-5 md:col-start-2">
+                    ${photoEl(p[1], 'aspect-square rounded-sm')}
+                </div>
+                <div class="md:col-span-4 md:mt-32 flex flex-col gap-12">
+                    ${photoEl(p[2], 'aspect-portrait rounded-sm')}
+                    ${photoEl(p[3], 'aspect-square rounded-sm')}
+                </div>
+            </div>`;
+        }
+
+        // Секция 5: Лайн-ап
+        function layoutLineup(photos) {
+            const p = photos;
+            return `
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-10">
+                <div class="md:mt-20 flex flex-col gap-8">
+                    ${photoEl(p[0], 'aspect-portrait rounded-sm')}
+                    ${photoEl(p[1], 'aspect-square rounded-sm w-2/3 ml-auto')}
+                </div>
+                <div class="flex flex-col gap-8">
+                    ${photoEl(p[2], 'aspect-portrait rounded-sm')}
+                    ${photoEl(p[3], 'aspect-landscape rounded-sm')}
+                </div>
+                <div class="md:mt-40 flex flex-col gap-8">
+                    ${photoEl(p[4], 'aspect-portrait rounded-sm')}
+                </div>
+            </div>`;
+        }
+
+        // Секция 6: Торт
+        function layoutCake(photos) {
+            const p = photos;
+            return `
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
+                <div class="md:col-span-6 md:col-start-4 relative z-10">
+                    ${photoEl(p[0], 'aspect-portrait rounded-sm')}
+                </div>
+                <div class="md:col-span-4 md:col-start-2 md:-mt-48 relative z-0">
+                    ${photoEl(p[1], 'aspect-square rounded-sm opacity-80 hover:opacity-100 transition-opacity')}
+                </div>
+                <div class="md:col-span-4 md:col-start-8 md:-mt-24 relative z-20">
+                    ${photoEl(p[2], 'aspect-landscape rounded-sm')}
+                    ${photoEl(p[3], 'aspect-square rounded-sm mt-12 w-2/3 ml-auto')}
+                </div>
+            </div>`;
+        }
+
+        // Маппинг секций к шаблонам
+        const SECTION_DEFS = [
+            { id: 'concept',  title: 'Концепция',          layout: layoutConcept, slots: 4 },
+            { id: 'decor',    title: 'Декор',               layout: layoutDecor,   slots: 4 },
+            { id: 'guests',   title: 'Гости & Дресс-код', layout: layoutGuests,  slots: 4 },
+            { id: 'digital',  title: 'Диджитал продакшн',  layout: layoutDigital, slots: 4 },
+            { id: 'lineup',   title: 'Лайн-ап',            layout: layoutLineup,  slots: 5 },
+            { id: 'cake',     title: 'Торт',                layout: layoutCake,    slots: 4 },
+        ];
+
+        // ═══════════════════════════════════════
+        // Дополнительные фото (сверх шаблона)
+        // ═══════════════════════════════════════
+        function overflowHTML(photos) {
+            if (photos.length === 0) return '';
+            const aspects = ['aspect-portrait', 'aspect-square', 'aspect-landscape'];
+            return `<div class="overflow-grid">${
+                photos.map((p, i) => photoEl(p, aspects[i % aspects.length] + ' rounded-sm')).join('')
+            }</div>`;
+        }
+
+        // ═══════════════════════════════════════
+        // Генерация HTML секций
+        // ═══════════════════════════════════════
+        function renderSections(event) {
+            const container = document.getElementById('sectionsContainer');
+            let html = '';
+
+            SECTION_DEFS.forEach((def, idx) => {
+                // Ищем секцию в данных события
+                const sec = event.sections.find(s => s.id === def.id);
+                const photos = sec ? sec.photos : [];
+
+                if (photos.length === 0) return; // Скрываем пустые секции
+
+                const num = String(idx + 1).padStart(2, '0');
+                const mainPhotos = photos.slice(0, def.slots);
+                const extraPhotos = photos.slice(def.slots);
+
+                html += `
+                <section class="py-16 md:py-32 px-4 md:px-12 max-w-[1400px] mx-auto ${idx === SECTION_DEFS.length - 1 ? 'mb-32' : ''}">
+                    <div class="mb-20 text-center section-title">
+                        <span class="text-bureau text-sm font-bold tracking-[0.2em] block mb-4">${num} //</span>
+                        <h2 class="text-3xl md:text-6xl font-serif uppercase tracking-widest text-gray-200">${def.title}</h2>
+                    </div>
+                    ${def.layout(mainPhotos)}
+                    ${overflowHTML(extraPhotos)}
+                </section>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+
+
+        // ═══════════════════════════════════════
+        // GSAP анимации (оригинальные)
+        // ═══════════════════════════════════════
+        function initAnimations() {
+            if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+            gsap.registerPlugin(ScrollTrigger);
+            ScrollTrigger.getAll().forEach(t => t.kill());
+
+            const wrappers = gsap.utils.toArray('.img-wrapper');
+            wrappers.forEach(wrapper => {
+                const img = wrapper.querySelector('img');
+                if (!img) return;
+
+                // Устанавливаем начальное скрытое состояние через GSAP
+                gsap.set(wrapper, { clipPath: 'polygon(0 100%, 100% 100%, 100% 100%, 0 100%)' });
+                gsap.set(img, { scale: 1.2 });
+
+                let tl = gsap.timeline({
+                    scrollTrigger: {
+                        trigger: wrapper,
+                        start: 'top 85%',
+                        toggleActions: 'play none none reverse'
+                    }
+                });
+
+                tl.to(wrapper, {
+                    clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)',
+                    duration: 1.5,
+                    ease: 'power4.inOut'
+                });
+
+                tl.to(img, {
+                    scale: 1,
+                    duration: 1.5,
+                    ease: 'power4.inOut'
+                }, '<');
+
+                gsap.to(img, {
+                    yPercent: 15,
+                    ease: 'none',
+                    scrollTrigger: {
+                        trigger: wrapper,
+                        start: 'top bottom',
+                        end: 'bottom top',
+                        scrub: true
+                    }
+                });
+            });
+
+            const titles = gsap.utils.toArray('.section-title');
+            titles.forEach(title => {
+                gsap.fromTo(title,
+                    { opacity: 0, y: 30 },
+                    {
+                        opacity: 1, y: 0,
+                        duration: 1.2,
+                        ease: 'power3.out',
+                        scrollTrigger: {
+                            trigger: title,
+                            start: 'top 90%'
+                        }
+                    }
+                );
+            });
+
+            // Пересчитать позиции для динамического контента
+            ScrollTrigger.refresh();
+        }
+
+        // ═══════════════════════════════════════
+        // FALLBACK DATA (для работы через file://)
+        // ═══════════════════════════════════════
+        const GALLERY_KEYS = {
+            concept: 'concept_gallery',
+            decor:   'decor_gallery',
+            guests:  'guests_gallery',
+            digital: 'digital_gallery',
+            lineup:  'lineup_gallery',
+            cake:    'cake_gallery'
+        };
+
+        const FALLBACK = {
+            concept_gallery: [{image:'assets/DSC_1726.JPG'},{image:'assets/DSC_1785.JPG'},{image:'assets/DSC_1803.JPG'},{image:'assets/DSC_1824.JPG'}],
+            decor_gallery:   [{image:'assets/DSC_1853.JPG'},{image:'assets/DSC_1855.JPG'},{image:'assets/DSC_1862.JPG'},{image:'assets/DSC_1875.JPG'}],
+            guests_gallery:  [{image:'assets/DSC_1894.JPG'},{image:'assets/DSC_1923.JPG'},{image:'assets/DSC_1939.JPG'},{image:'assets/DSC_1954.JPG'}],
+            digital_gallery: [{image:'assets/DSC_1972.JPG'},{image:'assets/DSC_1978.JPG'},{image:'assets/DSC_1979.JPG'},{image:'assets/DSC_1988.JPG'}],
+            lineup_gallery:  [{image:'assets/DSC_2021.JPG'},{image:'assets/DSC_2081.JPG'}],
+            cake_gallery:    [{image:'assets/DSC_1824.JPG'},{image:'assets/DSC_1862.JPG'}]
+        };
+
+        function dataToEvent(data) {
+            return { sections: SECTION_DEFS.map(def => {
+                const key = GALLERY_KEYS[def.id];
+                const items = data[key] || [];
+                return { id: def.id, title: def.title, photos: items.map(i => i.image) };
+            })};
+        }
+
+        // ═══════════════════════════════════════
+        // INIT
+        // ═══════════════════════════════════════
+        document.addEventListener('DOMContentLoaded', async () => {
+            let data = FALLBACK;
+
+            // Загружаем data.json (управляется через Sveltia CMS)
+            try {
+                const resp = await fetch('data.json?t=' + Date.now());
+                if (resp.ok) data = await resp.json();
+            } catch (e) {
+                console.warn('data.json not available, using fallback');
+            }
+
+            const event = dataToEvent(data);
+            renderSections(event);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    initAnimations();
+                });
+            });
+        });
+    })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+backend:
+  name: github
+  repo: Stas5252/BUREAU
+  branch: main
+
+media_folder: "2 страница/assets"
+public_folder: "assets"
+
+collections:
+  - name: "gallery"
+    label: "Галерея"
+    files:
+      - file: "2 страница/data.json"
+        label: "Фотографии"
+        name: "photos"
+        fields:
+          - label: "Галерея: Концепция"
+            name: "concept_gallery"
+            widget: "list"
+            fields:
+              - { label: "Фото", name: "image", widget: "image" }
+          - label: "Галерея: Декор"
+            name: "decor_gallery"
+            widget: "list"
+            fields:
+              - { label: "Фото", name: "image", widget: "image" }
+          - label: "Галерея: Гости & Дресс-код"
+            name: "guests_gallery"
+            widget: "list"
+            fields:
+              - { label: "Фото", name: "image", widget: "image" }
+          - label: "Галерея: Диджитал продакшн"
+            name: "digital_gallery"
+            widget: "list"
+            fields:
+              - { label: "Фото", name: "image", widget: "image" }
+          - label: "Галерея: Лайн-ап"
+            name: "lineup_gallery"
+            widget: "list"
+            fields:
+              - { label: "Фото", name: "image", widget: "image" }
+          - label: "Галерея: Торт"
+            name: "cake_gallery"
+            widget: "list"
+            fields:
+              - { label: "Фото", name: "image", widget: "image" }

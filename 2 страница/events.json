@@ -1,0 +1,72 @@
+{
+  "events": [
+    {
+      "id": "event-001",
+      "title": "Bureau — Премьерное событие",
+      "date": "2026-01-01",
+      "sections": [
+        {
+          "id": "concept",
+          "title": "Концепция",
+          "photos": [
+            "DSC_1726.JPG",
+            "DSC_1785.JPG",
+            "DSC_1803.JPG",
+            "DSC_1824.JPG"
+          ]
+        },
+        {
+          "id": "decor",
+          "title": "Декор",
+          "photos": [
+            "DSC_1853.JPG",
+            "DSC_1855.JPG",
+            "DSC_1862.JPG",
+            "DSC_1875.JPG"
+          ]
+        },
+        {
+          "id": "guests",
+          "title": "Гости & Дресс-код",
+          "photos": [
+            "DSC_1894.JPG",
+            "DSC_1923.JPG",
+            "DSC_1939.JPG",
+            "DSC_1954.JPG"
+          ]
+        },
+        {
+          "id": "digital",
+          "title": "Диджитал продакшн",
+          "photos": [
+            "DSC_1972.JPG",
+            "DSC_1978.JPG",
+            "DSC_1979.JPG",
+            "DSC_1988.JPG"
+          ]
+        },
+        {
+          "id": "lineup",
+          "title": "Лайн-ап",
+          "photos": [
+            "DSC_2021.JPG",
+            "DSC_2081.JPG",
+            "DSC_1726.JPG",
+            "DSC_1785.JPG",
+            "DSC_1803.JPG"
+          ]
+        },
+        {
+          "id": "cake",
+          "title": "Торт",
+          "photos": [
+            "DSC_1824.JPG",
+            "DSC_1853.JPG",
+            "DSC_1855.JPG",
+            "DSC_1862.JPG"
+          ]
+        }
+      ]
+    }
+  ]
+}

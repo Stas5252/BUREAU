@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ru" style="opacity: 0; transition: opacity 0.2s ease;">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Бюро</title>
+    <link rel="icon" href="favicon.png?v=5" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@400;500;600;700&family=Ruslan+Display&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      (function () {
+        // 1. Force manual restoration as the very first thing
+        if ("scrollRestoration" in history) {
+          history.scrollRestoration = "manual";
+        }
+
+        const forceTop = () => {
+          window.scrollTo(0, 0);
+          if (document.documentElement) document.documentElement.scrollTop = 0;
+          if (document.body) document.body.scrollTop = 0;
+        };
+
+        // Aggressive jump-to-top immediately
+        forceTop();
+
+        // 2. Clear any hash state
+        if (window.location.hash) {
+            window.history.replaceState(null, null, window.location.pathname + window.location.search);
+        }
+
+        // 3. Prevent any scrolling before we are fully ready
+        const lock = (e) => {
+          if (window.scrollY > 0) {
+            forceTop();
+            e.preventDefault();
+          }
+        };
+        window.addEventListener('scroll', lock, { passive: false });
+
+        // 4. Repeatedly jump every 20ms until load, then for 2 seconds more
+        const interval = setInterval(forceTop, 20);
+
+        window.addEventListener("load", () => {
+          forceTop();
+          
+          // Show content after a small buffer
+          setTimeout(() => {
+            clearInterval(interval);
+            window.removeEventListener('scroll', lock);
+            document.documentElement.style.opacity = "1";
+            
+            // Re-enable smooth scroll only after everything is stable
+            setTimeout(() => {
+              document.documentElement.style.scrollBehavior = "smooth";
+            }, 1000);
+          }, 500);
+        });
+
+        // 5. Hard reset on pagehide (for back button and refresh)
+        window.addEventListener("pagehide", forceTop);
+      })();
+    </script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Focus trap at the top to prevent jumping to bottom elements -->
+    <input type="text" autofocus style="position:fixed;top:-100px;opacity:0" aria-hidden="true" tabIndex="-1">
+    <!-- Moving to-top to the start of body to prevent focus-to-bottom issues -->
+    <a class="to-top" href="#top" aria-label="Наверх"></a>
+    <div id="top"></div>
+    <main class="page" aria-label="Макет из Figma">
+      <section class="section section--menu" aria-label="Меню">
+        <picture>
+          <source
+            type="image/webp"
+            srcset="
+              assets/sections/menu-640.webp 640w,
+              assets/sections/menu-960.webp 960w,
+              assets/sections/menu-1920.webp 1920w
+            "
+            sizes="100vw"
+          />
+          <img
+            class="section__img"
+            src="assets/sections/menu.png"
+            width="1920"
+            height="1080"
+            alt="Меню BUREAU"
+            fetchpriority="high"
+            decoding="async"
+          />
+        </picture>
+
+        <a class="logo-btn logo-btn--red" href="#rocket-anchor" aria-label="Ракета"></a>
+        <a class="logo-btn logo-btn--bureau" href="#bureau-anchor" aria-label="BUREAU"></a>
+        <a class="logo-btn logo-btn--pink" href="#pifpaf-anchor" aria-label="ПИФПАФ"></a>
+        <a class="logo-btn logo-btn--sh" href="#shust-anchor" aria-label="ШУСТ"></a>
+        <a class="projects-btn" href="2%20%D1%81%D1%82%D1%80%D0%B0%D0%BD%D0%B8%D1%86%D0%B0/index.html">
+          Наши проекты
+          <span class="projects-btn__arrow">→</span>
+        </a>
+      </section>
+
+      <section id="bureau" class="section" aria-label="BUREAU">
+        <div id="bureau-anchor" class="section-anchor" style="--y: 0%;"></div>
+        <picture>
+          <img
+            class="section__img"
+            src="assets/sections/bureau.png?v=2"
+            width="1920"
+            height="11883"
+            alt="BUREAU"
+            loading="lazy"
+            fetchpriority="low"
+            decoding="async"
+          />
+
+        </picture>
+      </section>
+
+      <section id="shust" class="section" aria-label="ШУСТ">
+        <div id="shust-anchor" class="section-anchor" style="--y: 0%;"></div>
+        <picture>
+          <source
+            type="image/webp"
+            srcset="
+              assets/sections/shust-640.webp 640w,
+              assets/sections/shust-960.webp 960w,
+              assets/sections/shust-1920.webp 1920w
+            "
+            sizes="100vw"
+          />
+          <img
+            class="section__img"
+            src="assets/sections/shust.png"
+            width="1920"
+            height="6480"
+            alt="ШУСТ"
+            loading="lazy"
+            fetchpriority="low"
+            decoding="async"
+          />
+        </picture>
+      </section>
+
+      <section id="pifpaf" class="section" aria-label="ПИФПАФ">
+        <div id="pifpaf-anchor" class="section-anchor" style="--y: 0%;"></div>
+        <picture>
+          <source
+            type="image/webp"
+            srcset="
+              assets/sections/pifpaf-640.webp 640w,
+              assets/sections/pifpaf-960.webp 960w,
+              assets/sections/pifpaf-1920.webp 1920w
+            "
+            sizes="100vw"
+          />
+          <img
+            class="section__img"
+            src="assets/sections/pifpaf.png"
+            width="1920"
+            height="8922"
+            alt="ПИФПАФ"
+            loading="lazy"
+            fetchpriority="low"
+            decoding="async"
+          />
+        </picture>
+      </section>
+
+      <section id="rocket" class="section" aria-label="Ракета">
+        <div id="rocket-anchor" class="section-anchor" style="--y: 0%;"></div>
+        <picture>
+          <source
+            type="image/webp"
+            srcset="
+              assets/sections/rocket-640.webp 640w,
+              assets/sections/rocket-960.webp 960w,
+              assets/sections/rocket-1920.webp 1920w
+            "
+            sizes="100vw"
+          />
+          <img
+            class="section__img"
+            src="assets/sections/rocket.png"
+            width="1920"
+            height="1080"
+            alt="Ракета"
+            loading="lazy"
+            fetchpriority="low"
+            decoding="async"
+          />
+        </picture>
+      </section>
+    </main>
+
+    <footer class="footer" role="contentinfo">
+      <div class="footer__inner">
+        <div class="footer__brand">
+          <img
+            class="footer__logo-img"
+            src="assets/footer-bureau.png"
+            alt="BUREAU"
+            loading="lazy"
+          />
+          <div class="footer__logo-sub">[БЮРО]</div>
+          <div class="footer__rule"></div>
+          <p class="footer__note">
+            © 2026 ИП ДОМБАЕВ АНТОН ВАЛЕРЬЕВИЧ. Все права защищены.
+          </p>
+        </div>
+
+        <div class="footer__details">
+          <p>ОГРНИП: 323632700030175&nbsp;|&nbsp;ИНН: 631506035238</p>
+          <p>Зарегистрирован Межрайонная инспекция Федеральной налоговой службы № 24 по Самарской области</p>
+          <p>Режим работы: Пн–Пт с 10:00 до 18:00</p>
+        </div>
+      </div>
+
+      
+    </footer>
+
+  </body>
+</html>

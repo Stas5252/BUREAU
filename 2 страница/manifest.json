@@ -1,0 +1,54 @@
+{
+  "sections": [
+    {
+      "id": "concept",
+      "photos": [
+        "photos/concept/DSC_1726.JPG",
+        "photos/concept/DSC_1785.JPG",
+        "photos/concept/DSC_1803.JPG",
+        "photos/concept/DSC_1824.JPG"
+      ]
+    },
+    {
+      "id": "decor",
+      "photos": [
+        "photos/decor/DSC_1853.JPG",
+        "photos/decor/DSC_1855.JPG",
+        "photos/decor/DSC_1862.JPG",
+        "photos/decor/DSC_1875.JPG"
+      ]
+    },
+    {
+      "id": "guests",
+      "photos": [
+        "photos/guests/DSC_1894.JPG",
+        "photos/guests/DSC_1923.JPG",
+        "photos/guests/DSC_1939.JPG",
+        "photos/guests/DSC_1954.JPG"
+      ]
+    },
+    {
+      "id": "digital",
+      "photos": [
+        "photos/digital/DSC_1972.JPG",
+        "photos/digital/DSC_1978.JPG",
+        "photos/digital/DSC_1979.JPG",
+        "photos/digital/DSC_1988.JPG"
+      ]
+    },
+    {
+      "id": "lineup",
+      "photos": [
+        "photos/lineup/DSC_2021.JPG",
+        "photos/lineup/DSC_2081.JPG"
+      ]
+    },
+    {
+      "id": "cake",
+      "photos": [
+        "photos/cake/DSC_1824.JPG",
+        "photos/cake/DSC_1862.JPG"
+      ]
+    }
+  ]
+}

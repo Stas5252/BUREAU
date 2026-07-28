@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bureau — Админка</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #08080e; --surface: #101018; --card: #16161f;
+            --border: rgba(255,255,255,0.07); --text: #e0e0ec;
+            --dim: rgba(255,255,255,0.45); --accent: #1d2ae6;
+            --accent-glow: rgba(29,42,230,0.25); --success: #22c55e;
+            --error: #ef4444; --font: 'Inter', sans-serif;
+        }
+        body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+
+        /* Login */
+        .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 20px; padding: 48px 40px; max-width: 420px; width: 100%; text-align: center;
+        }
+        .login-card h1 { font-size: 28px; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 6px; }
+        .login-card p { color: var(--dim); font-size: 14px; margin-bottom: 32px; }
+        .login-card input {
+            width: 100%; padding: 14px 16px; background: var(--bg);
+            border: 1px solid var(--border); border-radius: 10px;
+            color: var(--text); font-family: var(--font); font-size: 14px;
+            outline: none; margin-bottom: 16px;
+        }
+        .login-card input:focus { border-color: rgba(29,42,230,0.5); }
+        .login-card input::placeholder { color: var(--dim); }
+        .login-err { color: var(--error); font-size: 13px; margin-top: 8px; display: none; }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 12px 28px; font-family: var(--font); font-size: 13px;
+            font-weight: 600; border: none; border-radius: 999px; cursor: pointer;
+            transition: all 0.25s; width: 100%;
+        }
+        .btn-go { background: var(--accent); color: #fff; box-shadow: 0 4px 20px var(--accent-glow); }
+        .btn-go:hover { background: #2a38ff; transform: translateY(-1px); }
+        .btn-go:disabled { opacity: 0.5; cursor: wait; transform: none; }
+        .btn-out {
+            background: transparent; color: var(--dim); border: 1px solid var(--border);
+            width: auto; padding: 8px 20px; font-size: 12px;
+        }
+        .btn-out:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+
+        .spinner {
+            width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Main */
+        .main { display: none; }
+        .main.on { display: block; }
+        .topbar {
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 50;
+        }
+        .topbar h1 { font-size: 14px; font-weight: 700; letter-spacing: 0.1em; }
+        .topbar h1 span { color: var(--accent); }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .topbar-ok { font-size: 11px; color: var(--success); display: flex; align-items: center; gap: 6px; }
+        .topbar-ok::before { content: ''; width: 6px; height: 6px; background: var(--success); border-radius: 50%; }
+
+        .wrap { max-width: 900px; margin: 0 auto; padding: 32px 20px 80px; }
+
+        /* Section card */
+        .sec {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; margin-bottom: 24px; overflow: hidden;
+        }
+        .sec-head {
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .sec-head h2 { font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; }
+        .sec-head h2 span { color: var(--accent); margin-right: 10px; }
+        .sec-count { font-size: 11px; color: var(--dim); }
+
+        /* Photo grid */
+        .photos {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 6px; padding: 14px;
+        }
+        .photos:empty::after {
+            content: 'Нет фото'; display: block; text-align: center;
+            color: var(--dim); font-size: 13px; padding: 20px; grid-column: 1/-1;
+        }
+        .ph {
+            position: relative; aspect-ratio: 1; border-radius: 8px;
+            overflow: hidden; background: var(--bg);
+        }
+        .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .ph-x {
+            position: absolute; top: 5px; right: 5px; width: 22px; height: 22px;
+            background: rgba(0,0,0,0.75); color: #fff; border: none; border-radius: 50%;
+            font-size: 11px; cursor: pointer; display: grid; place-items: center;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .ph:hover .ph-x { opacity: 1; }
+        .ph-x:hover { background: var(--error); }
+
+        /* Upload */
+        .up {
+            margin: 6px 14px 14px; border: 2px dashed var(--border); border-radius: 10px;
+            padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s;
+            font-size: 13px; color: var(--dim);
+        }
+        .up:hover, .up.over { border-color: var(--accent); background: var(--accent-glow); }
+        .up strong { color: var(--accent); }
+        .up input { display: none; }
+        .bar { height: 3px; background: var(--border); margin: 0 14px 10px; border-radius: 2px; overflow: hidden; display: none; }
+        .bar.on { display: block; }
+        .bar-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.3s; border-radius: 2px; }
+
+        /* Toast */
+        .toasts { position: fixed; top: 64px; right: 16px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+        .toast {
+            padding: 10px 18px; background: var(--card); border: 1px solid var(--border);
+            border-radius: 10px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            animation: tin 0.3s ease;
+        }
+        .toast.ok { border-left: 3px solid var(--success); }
+        .toast.err { border-left: 3px solid var(--error); }
+        .toast.out { animation: tout 0.3s ease forwards; }
+        @keyframes tin { from { opacity: 0; transform: translateX(30px); } }
+        @keyframes tout { to { opacity: 0; transform: translateX(30px); } }
+
+        /* Confirm */
+        .overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            z-index: 500; display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .overlay.on { display: flex; }
+        .dialog {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+            padding: 28px; max-width: 380px; width: 100%;
+        }
+        .dialog h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+        .dialog p { font-size: 13px; color: var(--dim); margin-bottom: 20px; }
+        .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
+        .dialog-btns button { padding: 8px 20px; border-radius: 999px; font-family: var(--font); font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
+        .dbtn-no { background: transparent; color: var(--dim); border: 1px solid var(--border); }
+        .dbtn-yes { background: var(--error); color: #fff; }
+
+        @media (max-width: 640px) {
+            .login-card { padding: 32px 24px; }
+            .photos { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login" id="login">
+    <div class="login-card">
+        <h1>BUREAU</h1>
+        <p>Вставьте GitHub-токен для входа</p>
+        <input type="password" id="tok" placeholder="ghp_xxxxxxxxxxxx">
+        <button class="btn btn-go" id="goBtn" onclick="go()">Войти</button>
+        <div class="login-err" id="err"></div>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="main">
+    <div class="topbar">
+        <h1><span>BUREAU</span> АДМИНКА</h1>
+        <div class="topbar-right">
+            <div class="topbar-ok" id="status"></div>
+            <button class="btn-out" onclick="out()">Выйти</button>
+        </div>
+    </div>
+    <div class="wrap" id="wrap"></div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<div class="overlay" id="ov"><div class="dialog" id="dlg"></div></div>
+
+<script>
+// ═══ CONFIG ═══
+const SECTIONS = [
+    { id:'concept', title:'Концепция' },
+    { id:'decor',   title:'Декор' },
+    { id:'guests',  title:'Гости & Дресс-код' },
+    { id:'digital', title:'Диджитал продакшн' },
+    { id:'lineup',  title:'Лайн-ап' },
+    { id:'cake',    title:'Торт' }
+];
+
+let cfg = { token:'', owner:'', repo:'', branch:'main', base:'2 страница' };
+let data = null;   // events.json содержимое
+let sha = null;    // SHA файла events.json
+
+// ═══ GITHUB API ═══
+function url(p) {
+    return `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${p.split('/').map(encodeURIComponent).join('/')}`;
+}
+function hdr() {
+    return { 'Authorization':'token '+cfg.token, 'Content-Type':'application/json', 'Accept':'application/vnd.github.v3+json' };
+}
+
+async function getFile(p) {
+    const r = await fetch(url(p), {headers:hdr()});
+    if (r.status===404) return null;
+    if (!r.ok) throw new Error('GitHub '+r.status);
+    const d = await r.json();
+    return { text: atob(d.content.replace(/\n/g,'')), sha: d.sha };
+}
+
+async function putText(p, text, msg, s) {
+    const b = { message:msg, content:btoa(unescape(encodeURIComponent(text))), branch:cfg.branch };
+    if (s) b.sha = s;
+    const r = await fetch(url(p), {method:'PUT', headers:hdr(), body:JSON.stringify(b)});
+    if (!r.ok) throw new Error('PUT '+r.status);
+    return r.json();
+}
+
+async function putBin(p, b64, msg) {
+    const b = { message:msg, content:b64, branch:cfg.branch };
+    const r = await fetch(url(p), {method:'PUT', headers:hdr(), body:JSON.stringify(b)});
+    if (!r.ok) throw new Error('Upload '+r.status);
+    return r.json();
+}
+
+async function delFile(p, s, msg) {
+    const r = await fetch(url(p), {method:'DELETE', headers:hdr(), body:JSON.stringify({message:msg, sha:s, branch:cfg.branch})});
+    if (!r.ok) throw new Error('Delete '+r.status);
+}
+
+async function getSha(p) {
+    const r = await fetch(url(p), {headers:hdr()});
+    if (!r.ok) return null;
+    return (await r.json()).sha;
+}
+
+// ═══ DATA ═══
+function jp() { return cfg.base+'/events.json'; }
+
+function getSection(id) {
+    const evt = data.events[0];
+    let sec = evt.sections.find(s=>s.id===id);
+    if (!sec) { sec = {id, title: SECTIONS.find(s=>s.id===id)?.title||id, photos:[]}; evt.sections.push(sec); }
+    return sec;
+}
+
+async function load() {
+    const f = await getFile(jp());
+    if (f) {
+        data = JSON.parse(f.text);
+        sha = f.sha;
+    } else {
+        data = { events:[{ id:'main', title:'Bureau', date:'', sections: SECTIONS.map(s=>({id:s.id, title:s.title, photos:[]})) }] };
+        const r = await putText(jp(), JSON.stringify(data,null,2), 'Init events.json', null);
+        sha = r.content.sha;
+    }
+}
+
+async function save(msg) {
+    const r = await putText(jp(), JSON.stringify(data,null,2), msg, sha);
+    sha = r.content.sha;
+}
+
+// ═══ LOGIN ═══
+async function go() {
+    const token = document.getElementById('tok').value.trim();
+    if (!token) { errShow('Вставьте токен'); return; }
+
+    const btn = document.getElementById('goBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    errHide();
+
+    try {
+        const h = {'Authorization':'token '+token, 'Accept':'application/vnd.github.v3+json'};
+
+        // Узнаём юзера
+        const u = await fetch('https://api.github.com/user', {headers:h});
+        if (!u.ok) throw new Error('Неверный токен');
+        const user = await u.json();
+
+        // Ищем репо
+        let repo = null;
+        const rr = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {headers:h});
+        for (const r of await rr.json()) {
+            if (r.name.toLowerCase().includes('bureau')) { repo = r.name; break; }
+        }
+        if (!repo) throw new Error('Репозиторий с "bureau" не найден');
+
+        cfg = { token, owner:user.login, repo, branch:'main', base:'2 страница' };
+        await load();
+        localStorage.setItem('bt', token);
+
+        document.getElementById('login').style.display = 'none';
+        document.getElementById('main').classList.add('on');
+        document.getElementById('status').textContent = user.login+'/'+repo;
+        render();
+        toast('Подключено','ok');
+    } catch(e) {
+        errShow(e.message);
+    } finally {
+        btn.disabled = false; btn.textContent = 'Войти';
+    }
+}
+
+function out() {
+    localStorage.removeItem('bt');
+    document.getElementById('main').classList.remove('on');
+    document.getElementById('login').style.display = 'flex';
+}
+
+function errShow(m) { const e=document.getElementById('err'); e.textContent=m; e.style.display='block'; }
+function errHide() { document.getElementById('err').style.display='none'; }
+
+// ═══ RENDER ═══
+function render() {
+    const w = document.getElementById('wrap');
+    w.innerHTML = SECTIONS.map((def,i)=>{
+        const sec = getSection(def.id);
+        const num = String(i+1).padStart(2,'0');
+        return `
+        <div class="sec">
+            <div class="sec-head">
+                <h2><span>${num} //</span> ${def.title}</h2>
+                <span class="sec-count">${sec.photos.length} фото</span>
+            </div>
+            <div class="photos" id="ph-${def.id}">
+                ${sec.photos.map(p=>`
+                    <div class="ph">
+                        <img src="${esc(p)}" alt="" loading="lazy" onerror="this.style.display='none'">
+                        <button class="ph-x" onclick="event.stopPropagation();confirmDel('${def.id}','${esc(p)}')" title="Удалить">✕</button>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="bar" id="bar-${def.id}"><div class="bar-fill" id="bf-${def.id}"></div></div>
+            <div class="up"
+                 onclick="document.getElementById('f-${def.id}').click()"
+                 ondragover="event.preventDefault();this.classList.add('over')"
+                 ondragleave="this.classList.remove('over')"
+                 ondrop="event.preventDefault();this.classList.remove('over');drop(event,'${def.id}')">
+                <strong>Нажмите</strong> или перетащите фото сюда
+                <input type="file" id="f-${def.id}" accept="image/*" multiple onchange="upload(this.files,'${def.id}')">
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ═══ UPLOAD ═══
+function drop(e,sid) { upload(e.dataTransfer.files, sid); }
+
+async function upload(files, sid) {
+    if (!files||!files.length) return;
+    const sec = getSection(sid);
+    const bar = document.getElementById('bar-'+sid);
+    const fill = document.getElementById('bf-'+sid);
+    bar.classList.add('on');
+
+    let ok = 0;
+    for (let i=0; i<files.length; i++) {
+        const f = files[i];
+        if (!f.type.startsWith('image/')) { toast(f.name+' — не фото','err'); continue; }
+        if (f.size > 25*1024*1024) { toast(f.name+' > 25МБ','err'); continue; }
+        try {
+            const b64 = await toB64(f);
+            const name = f.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+            const path = `${cfg.base}/photos/${sid}/${name}`;
+            const rel = `photos/${sid}/${name}`;
+            await putBin(path, b64, 'Фото: '+name);
+            sec.photos.push(rel);
+            ok++;
+            fill.style.width = ((i+1)/files.length*100)+'%';
+        } catch(e) { toast('Ошибка: '+e.message,'err'); }
+    }
+
+    if (ok>0) {
+        try { await save('Загружено '+ok+' фото'); toast('Загружено '+ok+' фото','ok'); }
+        catch(e) { toast('Ошибка: '+e.message,'err'); }
+    }
+
+    setTimeout(()=>{ bar.classList.remove('on'); fill.style.width='0'; },800);
+    render();
+    const inp = document.getElementById('f-'+sid);
+    if (inp) inp.value='';
+}
+
+function toB64(f) {
+    return new Promise((res,rej)=>{
+        const r = new FileReader();
+        r.onload = ()=> res(r.result.split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(f);
+    });
+}
+
+// ═══ DELETE ═══
+function confirmDel(sid, path) {
+    document.getElementById('dlg').innerHTML = `
+        <h3>Удалить фото?</h3>
+        <p>${path.split('/').pop()}</p>
+        <div class="dialog-btns">
+            <button class="dbtn-no" onclick="closeOv()">Отмена</button>
+            <button class="dbtn-yes" onclick="del('${sid}','${esc(path)}')">Удалить</button>
+        </div>`;
+    document.getElementById('ov').classList.add('on');
+}
+
+function closeOv() { document.getElementById('ov').classList.remove('on'); }
+
+async function del(sid, path) {
+    closeOv();
+    const sec = getSection(sid);
+    const idx = sec.photos.indexOf(path);
+    if (idx<0) return;
+    sec.photos.splice(idx,1);
+
+    try {
+        if (path.startsWith('photos/')) {
+            const s = await getSha(cfg.base+'/'+path);
+            if (s) await delFile(cfg.base+'/'+path, s, 'Удалено: '+path.split('/').pop());
+        }
+        await save('Удалено фото');
+        toast('Фото удалено','ok');
+    } catch(e) {
+        sec.photos.splice(idx,0,path);
+        toast('Ошибка: '+e.message,'err');
+    }
+    render();
+}
+
+// ═══ UTILS ═══
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+function toast(m,t) {
+    const el = document.createElement('div');
+    el.className = 'toast '+t; el.textContent = m;
+    document.getElementById('toasts').appendChild(el);
+    setTimeout(()=>{ el.classList.add('out'); setTimeout(()=>el.remove(),300); },3000);
+}
+
+document.getElementById('ov').addEventListener('click', e=>{ if(e.target===e.currentTarget) closeOv(); });
+
+// ═══ INIT ═══
+const saved = localStorage.getItem('bt');
+if (saved) document.getElementById('tok').value = saved;
+</script>
+</body>
+</html>

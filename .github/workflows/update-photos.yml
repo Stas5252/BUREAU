@@ -1,0 +1,49 @@
+name: Update photo manifest
+
+on:
+  push:
+    paths:
+      - '2 страница/photos/**'
+
+  # Позволяет запускать вручную через GitHub UI
+  workflow_dispatch:
+
+jobs:
+  update-manifest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate manifest.json
+        run: |
+          python3 -c "
+          import json, os
+
+          SECTIONS = ['concept','decor','guests','digital','lineup','cake']
+          IMAGE_EXT = ('.jpg','.jpeg','.png','.webp','.gif')
+          BASE = '2 страница/photos'
+
+          sections = []
+          for sid in SECTIONS:
+              folder = os.path.join(BASE, sid)
+              photos = []
+              if os.path.isdir(folder):
+                  for f in sorted(os.listdir(folder)):
+                      if f.lower().endswith(IMAGE_EXT) and not f.startswith('.'):
+                          photos.append('photos/' + sid + '/' + f)
+              sections.append({'id': sid, 'photos': photos})
+
+          with open('2 страница/manifest.json', 'w') as f:
+              json.dump({'sections': sections}, f, indent=2, ensure_ascii=False)
+          print('Manifest updated:', sum(len(s['photos']) for s in sections), 'photos')
+          "
+
+      - name: Commit manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "2 страница/manifest.json"
+          git diff --staged --quiet || (git commit -m "📸 Update photo manifest" && git push)
