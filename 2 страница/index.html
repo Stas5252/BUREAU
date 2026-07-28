@@ -358,7 +358,11 @@
             return { sections: SECTION_DEFS.map(def => {
                 const key = GALLERY_KEYS[def.id];
                 const items = data[key] || [];
-                return { id: def.id, title: def.title, photos: items.map(i => i.image) };
+                return { 
+                    id: def.id, 
+                    title: def.title, 
+                    photos: items.map(i => i.image ? i.image.replace(/^\/+/, '') : '') 
+                };
             })};
         }
 
