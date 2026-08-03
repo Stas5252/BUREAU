@@ -53,9 +53,11 @@
         
         .img-wrapper img {
             width: 100%;
-            height: auto;
+            height: 120%;
             object-fit: cover;
-            display: block;
+            position: absolute;
+            top: -10%;
+            left: 0;
             will-change: transform;
         }
 
@@ -339,21 +341,37 @@
                 </section>`;
 
                 // Фото-галерея
-                // Фото-галерея (Masonry Grid)
                 const photos = event.photos || [];
-                if (photos.length > 0) {
+                let photoIdx = 0;
+                let layoutIdx = 0;
+
+                while (photoIdx < photos.length) {
+                    let layout = LAYOUTS[layoutIdx % LAYOUTS.length];
+                    const chunk = photos.slice(photoIdx, photoIdx + layout.slots);
+                    
+                    // Если кусок не заполняет лейаут целиком (остаток фото) — используем специальные fallback-лейауты
+                    if (chunk.length < layout.slots) {
+                        if (chunk.length === 1) layout = { fn: layoutFallback1, slots: 1 };
+                        else if (chunk.length === 2) layout = { fn: layoutFallback2, slots: 2 };
+                        else if (chunk.length === 3) layout = { fn: layoutFallback3, slots: 3 };
+                        else if (chunk.length === 4) layout = { fn: layoutFallback4, slots: 4 };
+                    }
+
+                    const isLast = (photoIdx + chunk.length >= photos.length) && (eventIdx === events.length - 1);
+
                     html += `
-                    <section class="pb-20 md:pb-32 px-4 md:px-12 max-w-[1600px] mx-auto ${eventIdx === events.length - 1 ? 'mb-32' : ''}">
-                        <div class="columns-1 md:columns-2 lg:columns-3 gap-6 md:gap-10 space-y-6 md:space-y-10">
-                            ${photos.map(p => photoEl(p, 'w-full rounded-sm inline-block')).join('')}
-                        </div>
+                    <section class="py-8 md:py-16 px-4 md:px-12 max-w-[1400px] mx-auto ${isLast ? 'mb-32' : ''}">
+                        ${layout.fn(chunk)}
                     </section>`;
+
+                    photoIdx += layout.slots;
+                    layoutIdx++;
                 }
 
                 // Разделитель между мероприятиями
                 if (eventIdx < events.length - 1) {
                     html += `
-                    <div class="py-10 md:py-20 flex justify-center section-title">
+                    <div class="py-20 md:py-32 flex justify-center section-title">
                         <div class="event-divider"></div>
                     </div>`;
                 }
@@ -398,6 +416,17 @@
                     duration: 1.5,
                     ease: 'power4.inOut'
                 }, '<');
+
+                gsap.to(img, {
+                    yPercent: 15,
+                    ease: 'none',
+                    scrollTrigger: {
+                        trigger: wrapper,
+                        start: 'top bottom',
+                        end: 'bottom top',
+                        scrub: true
+                    }
+                });
             });
 
             // Анимация заголовков и описаний
