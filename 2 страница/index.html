@@ -53,11 +53,9 @@
         
         .img-wrapper img {
             width: 100%;
-            height: 120%;
+            height: auto;
             object-fit: cover;
-            position: absolute;
-            top: -10%;
-            left: 0;
+            display: block;
             will-change: transform;
         }
 
@@ -179,30 +177,30 @@
         // ═══════════════════════════════════════
         function layout1(photos) {
             return `
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
-                <div class="md:col-span-5 md:col-start-2">
-                    ${photoEl(photos[0], 'aspect-portrait rounded-sm')}
-                    ${photos[1] ? photoEl(photos[1], 'aspect-square rounded-sm mt-8 w-3/4 md:ml-auto') : ''}
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12 items-center">
+                <div class="md:col-span-6">
+                    ${photoEl(photos[0], 'rounded-sm')}
+                    ${photos[1] ? photoEl(photos[1], 'rounded-sm mt-8 w-4/5 md:ml-auto') : ''}
                 </div>
-                <div class="md:col-span-5 flex flex-col gap-4 md:gap-12 md:mt-32">
-                    ${photos[2] ? photoEl(photos[2], 'aspect-square rounded-sm') : ''}
-                    ${photos[3] ? photoEl(photos[3], 'aspect-landscape rounded-sm') : ''}
+                <div class="md:col-span-6 flex flex-col gap-8 md:mt-16">
+                    ${photos[2] ? photoEl(photos[2], 'rounded-sm') : ''}
+                    ${photos[3] ? photoEl(photos[3], 'rounded-sm w-5/6') : ''}
                 </div>
             </div>`;
         }
 
         function layout2(photos) {
             return `
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
-                <div class="md:col-span-10 md:col-start-2">
-                    ${photoEl(photos[0], 'aspect-landscape rounded-sm')}
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12 items-center">
+                <div class="md:col-span-12 mb-8">
+                    ${photoEl(photos[0], 'rounded-sm')}
                 </div>
-                <div class="md:col-span-4 md:col-start-3">
-                    ${photos[1] ? photoEl(photos[1], 'aspect-portrait rounded-sm') : ''}
+                <div class="md:col-span-6">
+                    ${photos[1] ? photoEl(photos[1], 'rounded-sm w-5/6') : ''}
                 </div>
-                <div class="md:col-span-4 md:mt-24 flex flex-col gap-12">
-                    ${photos[2] ? photoEl(photos[2], 'aspect-portrait rounded-sm') : ''}
-                    ${photos[3] ? photoEl(photos[3], 'aspect-square rounded-sm') : ''}
+                <div class="md:col-span-6 flex flex-col gap-8 md:mt-12">
+                    ${photos[2] ? photoEl(photos[2], 'rounded-sm') : ''}
+                    ${photos[3] ? photoEl(photos[3], 'rounded-sm w-4/5 ml-auto') : ''}
                 </div>
             </div>`;
         }
@@ -210,62 +208,60 @@
         function layout3(photos) {
             return `
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12 items-center">
-                <div class="md:col-span-4 md:col-start-2">
-                    ${photoEl(photos[0], 'aspect-portrait rounded-sm')}
-                    ${photos[1] ? photoEl(photos[1], 'aspect-square rounded-sm mt-12 w-4/5') : ''}
+                <div class="md:col-span-5 md:col-start-2">
+                    ${photoEl(photos[0], 'rounded-sm')}
+                    ${photos[1] ? photoEl(photos[1], 'rounded-sm mt-12 w-4/5') : ''}
                 </div>
-                <div class="md:col-span-6">
-                    ${photos[2] ? photoEl(photos[2], 'aspect-square rounded-sm mb-8') : ''}
-                    ${photos[3] ? photoEl(photos[3], 'aspect-landscape rounded-sm md:w-3/4 md:ml-auto') : ''}
+                <div class="md:col-span-6 flex flex-col gap-8 md:mt-8">
+                    ${photos[2] ? photoEl(photos[2], 'rounded-sm') : ''}
+                    ${photos[3] ? photoEl(photos[3], 'rounded-sm w-full') : ''}
                 </div>
             </div>`;
         }
 
         function layout4(photos) {
             return `
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
-                <div class="md:col-span-8 md:col-start-3 mb-8">
-                    ${photoEl(photos[0], 'aspect-landscape rounded-sm')}
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12 items-center">
+                <div class="md:col-span-10 md:col-start-2 mb-8">
+                    ${photoEl(photos[0], 'rounded-sm w-full')}
                 </div>
-                <div class="md:col-span-5 md:col-start-2">
-                    ${photos[1] ? photoEl(photos[1], 'aspect-square rounded-sm') : ''}
+                <div class="md:col-span-6">
+                    ${photos[1] ? photoEl(photos[1], 'rounded-sm w-5/6 ml-auto') : ''}
                 </div>
-                <div class="md:col-span-4 md:mt-32 flex flex-col gap-12">
-                    ${photos[2] ? photoEl(photos[2], 'aspect-portrait rounded-sm') : ''}
-                    ${photos[3] ? photoEl(photos[3], 'aspect-square rounded-sm') : ''}
+                <div class="md:col-span-6 flex flex-col gap-8 md:mt-12">
+                    ${photos[2] ? photoEl(photos[2], 'rounded-sm') : ''}
+                    ${photos[3] ? photoEl(photos[3], 'rounded-sm w-3/4') : ''}
                 </div>
             </div>`;
         }
 
         function layout5(photos) {
             return `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-10">
-                <div class="md:mt-20 flex flex-col gap-8">
-                    ${photoEl(photos[0], 'aspect-portrait rounded-sm')}
-                    ${photos[1] ? photoEl(photos[1], 'aspect-square rounded-sm w-2/3 ml-auto') : ''}
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-10 items-center">
+                <div class="md:col-span-4 flex flex-col gap-8">
+                    ${photoEl(photos[0], 'rounded-sm')}
+                    ${photos[1] ? photoEl(photos[1], 'rounded-sm w-4/5 ml-auto') : ''}
                 </div>
-                <div class="flex flex-col gap-8">
-                    ${photos[2] ? photoEl(photos[2], 'aspect-portrait rounded-sm') : ''}
-                    ${photos[3] ? photoEl(photos[3], 'aspect-landscape rounded-sm') : ''}
+                <div class="md:col-span-4 flex flex-col gap-8 md:mt-12">
+                    ${photos[2] ? photoEl(photos[2], 'rounded-sm') : ''}
+                    ${photos[3] ? photoEl(photos[3], 'rounded-sm') : ''}
                 </div>
-                <div class="md:mt-40 flex flex-col gap-8">
-                    ${photos[4] ? photoEl(photos[4], 'aspect-portrait rounded-sm') : ''}
+                <div class="md:col-span-4 flex flex-col gap-8 md:mt-24">
+                    ${photos[4] ? photoEl(photos[4], 'rounded-sm') : ''}
                 </div>
             </div>`;
         }
 
         function layout6(photos) {
             return `
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
-                <div class="md:col-span-6 md:col-start-4 relative z-10">
-                    ${photoEl(photos[0], 'aspect-portrait rounded-sm')}
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12 items-center">
+                <div class="md:col-span-6 relative z-10">
+                    ${photoEl(photos[0], 'rounded-sm')}
+                    ${photos[1] ? photoEl(photos[1], 'rounded-sm opacity-80 hover:opacity-100 transition-opacity mt-8 w-3/4') : ''}
                 </div>
-                <div class="md:col-span-4 md:col-start-2 md:-mt-48 relative z-0">
-                    ${photos[1] ? photoEl(photos[1], 'aspect-square rounded-sm opacity-80 hover:opacity-100 transition-opacity') : ''}
-                </div>
-                <div class="md:col-span-4 md:col-start-8 md:-mt-24 relative z-20">
-                    ${photos[2] ? photoEl(photos[2], 'aspect-landscape rounded-sm') : ''}
-                    ${photos[3] ? photoEl(photos[3], 'aspect-square rounded-sm mt-12 w-2/3 ml-auto') : ''}
+                <div class="md:col-span-6 relative z-20 flex flex-col gap-8 md:mt-12">
+                    ${photos[2] ? photoEl(photos[2], 'rounded-sm') : ''}
+                    ${photos[3] ? photoEl(photos[3], 'rounded-sm mt-12 w-4/5 ml-auto') : ''}
                 </div>
             </div>`;
         }
@@ -274,8 +270,8 @@
         function layoutFallback1(photos) {
             return `
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
-                <div class="md:col-span-8 md:col-start-3">
-                    ${photoEl(photos[0], 'aspect-landscape rounded-sm w-full')}
+                <div class="md:col-span-10 md:col-start-2">
+                    ${photoEl(photos[0], 'rounded-sm w-full')}
                 </div>
             </div>`;
         }
@@ -283,11 +279,11 @@
         function layoutFallback2(photos) {
             return `
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12 items-center">
-                <div class="md:col-span-5 md:col-start-2">
-                    ${photoEl(photos[0], 'aspect-portrait rounded-sm')}
+                <div class="md:col-span-6">
+                    ${photoEl(photos[0], 'rounded-sm')}
                 </div>
-                <div class="md:col-span-4 md:mt-32">
-                    ${photoEl(photos[1], 'aspect-square rounded-sm')}
+                <div class="md:col-span-6 md:mt-12">
+                    ${photoEl(photos[1], 'rounded-sm')}
                 </div>
             </div>`;
         }
@@ -295,12 +291,12 @@
         function layoutFallback3(photos) {
             return `
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12 items-center">
-                <div class="md:col-span-5 md:col-start-2">
-                    ${photoEl(photos[0], 'aspect-portrait rounded-sm')}
+                <div class="md:col-span-6">
+                    ${photoEl(photos[0], 'rounded-sm')}
                 </div>
-                <div class="md:col-span-5 flex flex-col gap-8 md:gap-16">
-                    ${photoEl(photos[1], 'aspect-square rounded-sm w-4/5 ml-auto')}
-                    ${photoEl(photos[2], 'aspect-landscape rounded-sm')}
+                <div class="md:col-span-6 flex flex-col gap-8 md:gap-12 md:mt-8">
+                    ${photoEl(photos[1], 'rounded-sm w-4/5 ml-auto')}
+                    ${photoEl(photos[2], 'rounded-sm')}
                 </div>
             </div>`;
         }
@@ -416,17 +412,6 @@
                     duration: 1.5,
                     ease: 'power4.inOut'
                 }, '<');
-
-                gsap.to(img, {
-                    yPercent: 15,
-                    ease: 'none',
-                    scrollTrigger: {
-                        trigger: wrapper,
-                        start: 'top bottom',
-                        end: 'bottom top',
-                        scrub: true
-                    }
-                });
             });
 
             // Анимация заголовков и описаний
