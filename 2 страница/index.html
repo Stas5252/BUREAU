@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bureau | Premium Events</title>
     <link rel="icon" type="image/png" href="favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -47,16 +48,15 @@
         .img-wrapper {
             position: relative;
             overflow: hidden;
-            /* clip-path и scale устанавливаются через GSAP */
             will-change: transform, clip-path;
         }
         
         .img-wrapper img {
             width: 100%;
-            height: 120%; /* Запас высоты для эффекта параллакса */
+            height: 120%;
             object-fit: cover;
             position: absolute;
-            top: -10%; /* Смещение для параллакса */
+            top: -10%;
             left: 0;
             will-change: transform;
         }
@@ -66,14 +66,67 @@
         .aspect-landscape { aspect-ratio: 16/9; }
         .aspect-square { aspect-ratio: 1/1; }
 
-        /* Сетка для лишних фото */
-        .overflow-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
-            margin-top: 24px;
+        /* ═══ Типографика описания мероприятия ═══ */
+        .event-title {
+            font-family: 'PT Serif', Georgia, serif;
+            font-weight: 400;
+            font-size: clamp(2rem, 6vw, 4.5rem);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(245, 245, 245, 0.95);
+            line-height: 1.1;
         }
 
+        .event-description {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        .event-description p {
+            font-family: 'PT Serif', Georgia, serif;
+            font-size: clamp(1rem, 2.2vw, 1.25rem);
+            font-weight: 400;
+            line-height: 1.9;
+            color: rgba(245, 245, 245, 0.55);
+            margin-bottom: 1.6em;
+            text-align: center;
+        }
+
+        .event-description p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Акцентный первый абзац */
+        .event-description p:first-child {
+            font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+            color: rgba(245, 245, 245, 0.7);
+            font-style: italic;
+        }
+
+        /* Короткие абзацы (одно предложение) — крупнее и акцентнее */
+        .event-description p.accent-line {
+            font-size: clamp(1.15rem, 2.6vw, 1.5rem);
+            color: rgba(245, 245, 245, 0.75);
+            font-style: italic;
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+
+        /* Разделитель между мероприятиями */
+        .event-divider {
+            width: 60px;
+            height: 1px;
+            background: #1d2ae6;
+            margin: 0 auto;
+        }
+
+        /* Декоративная линия под заголовком */
+        .title-line {
+            width: 40px;
+            height: 1px;
+            background: rgba(29, 42, 230, 0.6);
+            margin: 1.5rem auto 0;
+        }
 
     </style>
 </head>
@@ -84,10 +137,8 @@
         <img src="logo.png" alt="Bureau" class="w-auto h-auto max-w-[90vw] max-h-[50vh] object-contain">
     </section>
 
-
-
-    <!-- Контейнер секций — заполняется из events.json -->
-    <div id="sectionsContainer"></div>
+    <!-- Контейнер мероприятий — заполняется из events.json -->
+    <div id="eventsContainer"></div>
 
     <!-- GSAP, ScrollTrigger -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
@@ -96,173 +147,189 @@
     <script>
     (function() {
         // ═══════════════════════════════════════
-        // Шаблоны секций — точные копии оригинала
+        // Утилита для создания фото-элемента
         // ═══════════════════════════════════════
-
         function photoEl(src, classes) {
             if (!src) return '';
             return `<div class="img-wrapper ${classes}"><img src="${src}" alt="" loading="lazy"></div>`;
         }
 
-        // Секция 1: Концепция
-        function layoutConcept(photos) {
-            const p = photos;
+        // ═══════════════════════════════════════
+        // Рендер описания — разбивает на абзацы,
+        // короткие строки делает акцентными
+        // ═══════════════════════════════════════
+        function renderDescription(text) {
+            if (!text) return '';
+            const paragraphs = text.split('\n').filter(p => p.trim());
+            return paragraphs.map((p, i) => {
+                const isShort = p.trim().length < 60;
+                const cls = (isShort && i > 0) ? ' class="accent-line"' : '';
+                return `<p${cls}>${escHtml(p.trim())}</p>`;
+            }).join('');
+        }
+
+        function escHtml(s) {
+            const d = document.createElement('div');
+            d.textContent = s;
+            return d.innerHTML;
+        }
+
+        // ═══════════════════════════════════════
+        // 6 шаблонов раскладки (циклически)
+        // ═══════════════════════════════════════
+        function layout1(photos) {
             return `
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
                 <div class="md:col-span-5 md:col-start-2">
-                    ${photoEl(p[0], 'aspect-portrait rounded-sm')}
-                    ${photoEl(p[1], 'aspect-square rounded-sm mt-8 w-3/4 md:ml-auto')}
+                    ${photoEl(photos[0], 'aspect-portrait rounded-sm')}
+                    ${photos[1] ? photoEl(photos[1], 'aspect-square rounded-sm mt-8 w-3/4 md:ml-auto') : ''}
                 </div>
                 <div class="md:col-span-5 flex flex-col gap-4 md:gap-12 md:mt-32">
-                    ${photoEl(p[2], 'aspect-square rounded-sm')}
-                    ${photoEl(p[3], 'aspect-landscape rounded-sm')}
+                    ${photos[2] ? photoEl(photos[2], 'aspect-square rounded-sm') : ''}
+                    ${photos[3] ? photoEl(photos[3], 'aspect-landscape rounded-sm') : ''}
                 </div>
             </div>`;
         }
 
-        // Секция 2: Декор
-        function layoutDecor(photos) {
-            const p = photos;
+        function layout2(photos) {
             return `
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
                 <div class="md:col-span-10 md:col-start-2">
-                    ${photoEl(p[0], 'aspect-landscape rounded-sm')}
+                    ${photoEl(photos[0], 'aspect-landscape rounded-sm')}
                 </div>
                 <div class="md:col-span-4 md:col-start-3">
-                    ${photoEl(p[1], 'aspect-portrait rounded-sm')}
+                    ${photos[1] ? photoEl(photos[1], 'aspect-portrait rounded-sm') : ''}
                 </div>
                 <div class="md:col-span-4 md:mt-24 flex flex-col gap-12">
-                    ${photoEl(p[2], 'aspect-portrait rounded-sm')}
-                    ${photoEl(p[3], 'aspect-square rounded-sm')}
+                    ${photos[2] ? photoEl(photos[2], 'aspect-portrait rounded-sm') : ''}
+                    ${photos[3] ? photoEl(photos[3], 'aspect-square rounded-sm') : ''}
                 </div>
             </div>`;
         }
 
-        // Секция 3: Гости & Дресс-код
-        function layoutGuests(photos) {
-            const p = photos;
+        function layout3(photos) {
             return `
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12 items-center">
                 <div class="md:col-span-4 md:col-start-2">
-                    ${photoEl(p[0], 'aspect-portrait rounded-sm')}
-                    ${photoEl(p[1], 'aspect-square rounded-sm mt-12 w-4/5')}
+                    ${photoEl(photos[0], 'aspect-portrait rounded-sm')}
+                    ${photos[1] ? photoEl(photos[1], 'aspect-square rounded-sm mt-12 w-4/5') : ''}
                 </div>
                 <div class="md:col-span-6">
-                    ${photoEl(p[2], 'aspect-square rounded-sm mb-8')}
-                    ${photoEl(p[3], 'aspect-landscape rounded-sm md:w-3/4 md:ml-auto')}
+                    ${photos[2] ? photoEl(photos[2], 'aspect-square rounded-sm mb-8') : ''}
+                    ${photos[3] ? photoEl(photos[3], 'aspect-landscape rounded-sm md:w-3/4 md:ml-auto') : ''}
                 </div>
             </div>`;
         }
 
-        // Секция 4: Диджитал продакшн
-        function layoutDigital(photos) {
-            const p = photos;
+        function layout4(photos) {
             return `
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
                 <div class="md:col-span-8 md:col-start-3 mb-8">
-                    ${photoEl(p[0], 'aspect-landscape rounded-sm')}
+                    ${photoEl(photos[0], 'aspect-landscape rounded-sm')}
                 </div>
                 <div class="md:col-span-5 md:col-start-2">
-                    ${photoEl(p[1], 'aspect-square rounded-sm')}
+                    ${photos[1] ? photoEl(photos[1], 'aspect-square rounded-sm') : ''}
                 </div>
                 <div class="md:col-span-4 md:mt-32 flex flex-col gap-12">
-                    ${photoEl(p[2], 'aspect-portrait rounded-sm')}
-                    ${photoEl(p[3], 'aspect-square rounded-sm')}
+                    ${photos[2] ? photoEl(photos[2], 'aspect-portrait rounded-sm') : ''}
+                    ${photos[3] ? photoEl(photos[3], 'aspect-square rounded-sm') : ''}
                 </div>
             </div>`;
         }
 
-        // Секция 5: Лайн-ап
-        function layoutLineup(photos) {
-            const p = photos;
+        function layout5(photos) {
             return `
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-10">
                 <div class="md:mt-20 flex flex-col gap-8">
-                    ${photoEl(p[0], 'aspect-portrait rounded-sm')}
-                    ${photoEl(p[1], 'aspect-square rounded-sm w-2/3 ml-auto')}
+                    ${photoEl(photos[0], 'aspect-portrait rounded-sm')}
+                    ${photos[1] ? photoEl(photos[1], 'aspect-square rounded-sm w-2/3 ml-auto') : ''}
                 </div>
                 <div class="flex flex-col gap-8">
-                    ${photoEl(p[2], 'aspect-portrait rounded-sm')}
-                    ${photoEl(p[3], 'aspect-landscape rounded-sm')}
+                    ${photos[2] ? photoEl(photos[2], 'aspect-portrait rounded-sm') : ''}
+                    ${photos[3] ? photoEl(photos[3], 'aspect-landscape rounded-sm') : ''}
                 </div>
                 <div class="md:mt-40 flex flex-col gap-8">
-                    ${photoEl(p[4], 'aspect-portrait rounded-sm')}
+                    ${photos[4] ? photoEl(photos[4], 'aspect-portrait rounded-sm') : ''}
                 </div>
             </div>`;
         }
 
-        // Секция 6: Торт
-        function layoutCake(photos) {
-            const p = photos;
+        function layout6(photos) {
             return `
             <div class="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-12">
                 <div class="md:col-span-6 md:col-start-4 relative z-10">
-                    ${photoEl(p[0], 'aspect-portrait rounded-sm')}
+                    ${photoEl(photos[0], 'aspect-portrait rounded-sm')}
                 </div>
                 <div class="md:col-span-4 md:col-start-2 md:-mt-48 relative z-0">
-                    ${photoEl(p[1], 'aspect-square rounded-sm opacity-80 hover:opacity-100 transition-opacity')}
+                    ${photos[1] ? photoEl(photos[1], 'aspect-square rounded-sm opacity-80 hover:opacity-100 transition-opacity') : ''}
                 </div>
                 <div class="md:col-span-4 md:col-start-8 md:-mt-24 relative z-20">
-                    ${photoEl(p[2], 'aspect-landscape rounded-sm')}
-                    ${photoEl(p[3], 'aspect-square rounded-sm mt-12 w-2/3 ml-auto')}
+                    ${photos[2] ? photoEl(photos[2], 'aspect-landscape rounded-sm') : ''}
+                    ${photos[3] ? photoEl(photos[3], 'aspect-square rounded-sm mt-12 w-2/3 ml-auto') : ''}
                 </div>
             </div>`;
         }
 
-        // Маппинг секций к шаблонам
-        const SECTION_DEFS = [
-            { id: 'concept',  title: 'Концепция',          layout: layoutConcept, slots: 4 },
-            { id: 'decor',    title: 'Декор',               layout: layoutDecor,   slots: 4 },
-            { id: 'guests',   title: 'Гости & Дресс-код', layout: layoutGuests,  slots: 4 },
-            { id: 'digital',  title: 'Диджитал продакшн',  layout: layoutDigital, slots: 4 },
-            { id: 'lineup',   title: 'Лайн-ап',            layout: layoutLineup,  slots: 5 },
-            { id: 'cake',     title: 'Торт',                layout: layoutCake,    slots: 4 },
+        const LAYOUTS = [
+            { fn: layout1, slots: 4 },
+            { fn: layout2, slots: 4 },
+            { fn: layout3, slots: 4 },
+            { fn: layout4, slots: 4 },
+            { fn: layout5, slots: 5 },
+            { fn: layout6, slots: 4 },
         ];
 
         // ═══════════════════════════════════════
-        // Дополнительные фото (сверх шаблона)
+        // Рендеринг мероприятий
         // ═══════════════════════════════════════
-        function overflowHTML(photos) {
-            if (photos.length === 0) return '';
-            const aspects = ['aspect-portrait', 'aspect-square', 'aspect-landscape'];
-            return `<div class="overflow-grid">${
-                photos.map((p, i) => photoEl(p, aspects[i % aspects.length] + ' rounded-sm')).join('')
-            }</div>`;
-        }
-
-        // ═══════════════════════════════════════
-        // Генерация HTML секций
-        // ═══════════════════════════════════════
-        function renderSections(event) {
-            const container = document.getElementById('sectionsContainer');
+        function renderEvents(events) {
+            const container = document.getElementById('eventsContainer');
             let html = '';
 
-            SECTION_DEFS.forEach((def, idx) => {
-                // Ищем секцию в данных события
-                const sec = event.sections.find(s => s.id === def.id);
-                const photos = sec ? sec.photos : [];
-
-                if (photos.length === 0) return; // Скрываем пустые секции
-
-                const num = String(idx + 1).padStart(2, '0');
-                const mainPhotos = photos.slice(0, def.slots);
-                const extraPhotos = photos.slice(def.slots);
-
+            events.forEach((event, eventIdx) => {
+                // Заголовок и описание мероприятия
                 html += `
-                <section class="py-16 md:py-32 px-4 md:px-12 max-w-[1400px] mx-auto ${idx === SECTION_DEFS.length - 1 ? 'mb-32' : ''}">
-                    <div class="mb-20 text-center section-title">
-                        <span class="text-bureau text-sm font-bold tracking-[0.2em] block mb-4">${num} //</span>
-                        <h2 class="text-3xl md:text-6xl font-serif uppercase tracking-widest text-gray-200">${def.title}</h2>
+                <section class="py-20 md:py-40 px-6 md:px-12 max-w-[1400px] mx-auto">
+                    <div class="mb-24 text-center section-title">
+                        <h2 class="event-title">${escHtml(event.title || 'Bureau')}</h2>
+                        <div class="title-line"></div>
                     </div>
-                    ${def.layout(mainPhotos)}
-                    ${overflowHTML(extraPhotos)}
+                    ${event.description ? `
+                    <div class="event-description section-title">
+                        ${renderDescription(event.description)}
+                    </div>` : ''}
                 </section>`;
+
+                // Фото-галерея
+                const photos = event.photos || [];
+                let photoIdx = 0;
+                let layoutIdx = 0;
+
+                while (photoIdx < photos.length) {
+                    const layout = LAYOUTS[layoutIdx % LAYOUTS.length];
+                    const chunk = photos.slice(photoIdx, photoIdx + layout.slots);
+                    const isLast = (photoIdx + layout.slots >= photos.length) && (eventIdx === events.length - 1);
+
+                    html += `
+                    <section class="py-8 md:py-16 px-4 md:px-12 max-w-[1400px] mx-auto ${isLast ? 'mb-32' : ''}">
+                        ${layout.fn(chunk)}
+                    </section>`;
+
+                    photoIdx += layout.slots;
+                    layoutIdx++;
+                }
+
+                // Разделитель между мероприятиями
+                if (eventIdx < events.length - 1) {
+                    html += `
+                    <div class="py-20 md:py-32 flex justify-center section-title">
+                        <div class="event-divider"></div>
+                    </div>`;
+                }
             });
 
             container.innerHTML = html;
         }
-
-
 
         // ═══════════════════════════════════════
         // GSAP анимации (оригинальные)
@@ -272,12 +339,12 @@
             gsap.registerPlugin(ScrollTrigger);
             ScrollTrigger.getAll().forEach(t => t.kill());
 
+            // Анимация фото
             const wrappers = gsap.utils.toArray('.img-wrapper');
             wrappers.forEach(wrapper => {
                 const img = wrapper.querySelector('img');
                 if (!img) return;
 
-                // Устанавливаем начальное скрытое состояние через GSAP
                 gsap.set(wrapper, { clipPath: 'polygon(0 100%, 100% 100%, 100% 100%, 0 100%)' });
                 gsap.set(img, { scale: 1.2 });
 
@@ -313,13 +380,14 @@
                 });
             });
 
+            // Анимация заголовков и описаний
             const titles = gsap.utils.toArray('.section-title');
             titles.forEach(title => {
                 gsap.fromTo(title,
-                    { opacity: 0, y: 30 },
+                    { opacity: 0, y: 40 },
                     {
                         opacity: 1, y: 0,
-                        duration: 1.2,
+                        duration: 1.4,
                         ease: 'power3.out',
                         scrollTrigger: {
                             trigger: title,
@@ -329,59 +397,47 @@
                 );
             });
 
-            // Пересчитать позиции для динамического контента
             ScrollTrigger.refresh();
         }
 
         // ═══════════════════════════════════════
-        // FALLBACK DATA (для работы через file://)
+        // FALLBACK DATA
         // ═══════════════════════════════════════
-        const GALLERY_KEYS = {
-            concept: 'concept_gallery',
-            decor:   'decor_gallery',
-            guests:  'guests_gallery',
-            digital: 'digital_gallery',
-            lineup:  'lineup_gallery',
-            cake:    'cake_gallery'
-        };
-
-        const FALLBACK = {
-            concept_gallery: [{image:'assets/DSC_1726.JPG'},{image:'assets/DSC_1785.JPG'},{image:'assets/DSC_1803.JPG'},{image:'assets/DSC_1824.JPG'}],
-            decor_gallery:   [{image:'assets/DSC_1853.JPG'},{image:'assets/DSC_1855.JPG'},{image:'assets/DSC_1862.JPG'},{image:'assets/DSC_1875.JPG'}],
-            guests_gallery:  [{image:'assets/DSC_1894.JPG'},{image:'assets/DSC_1923.JPG'},{image:'assets/DSC_1939.JPG'},{image:'assets/DSC_1954.JPG'}],
-            digital_gallery: [{image:'assets/DSC_1972.JPG'},{image:'assets/DSC_1978.JPG'},{image:'assets/DSC_1979.JPG'},{image:'assets/DSC_1988.JPG'}],
-            lineup_gallery:  [{image:'assets/DSC_2021.JPG'},{image:'assets/DSC_2081.JPG'}],
-            cake_gallery:    [{image:'assets/DSC_1824.JPG'},{image:'assets/DSC_1862.JPG'}]
-        };
-
-        function dataToEvent(data) {
-            return { sections: SECTION_DEFS.map(def => {
-                const key = GALLERY_KEYS[def.id];
-                const items = data[key] || [];
-                return { 
-                    id: def.id, 
-                    title: def.title, 
-                    photos: items.map(i => i.image ? i.image.replace(/^\/+/, '') : '') 
-                };
-            })};
-        }
+        const FALLBACK_EVENTS = [
+            {
+                id: 'event-001',
+                title: 'EGGsactly Love',
+                description: 'Иногда концепция рождается не на мудборде, а за завтраком.\n\nПеред одним из самых важных собеседований Даня собирался выходить из дома. Лиза приготовила ему яичницу, и одно из яиц оказалось с двумя желтками. Для кого-то — случайность. Для них — знак.\n\nТак родилась идея свадьбы.',
+                date: '2026-01-01',
+                photos: [
+                    'DSC_1726.JPG','DSC_1785.JPG','DSC_1803.JPG','DSC_1824.JPG',
+                    'DSC_1853.JPG','DSC_1855.JPG','DSC_1862.JPG','DSC_1875.JPG',
+                    'DSC_1894.JPG','DSC_1923.JPG','DSC_1939.JPG','DSC_1954.JPG',
+                    'DSC_1972.JPG','DSC_1978.JPG','DSC_1979.JPG','DSC_1988.JPG',
+                    'DSC_2021.JPG','DSC_2081.JPG'
+                ]
+            }
+        ];
 
         // ═══════════════════════════════════════
         // INIT
         // ═══════════════════════════════════════
         document.addEventListener('DOMContentLoaded', async () => {
-            let data = FALLBACK;
+            let events = FALLBACK_EVENTS;
 
-            // Загружаем data.json (управляется через Sveltia CMS)
             try {
-                const resp = await fetch('data.json?t=' + Date.now());
-                if (resp.ok) data = await resp.json();
+                const resp = await fetch('events.json?t=' + Date.now());
+                if (resp.ok) {
+                    const json = await resp.json();
+                    if (json.events && json.events.length > 0) {
+                        events = json.events;
+                    }
+                }
             } catch (e) {
-                console.warn('data.json not available, using fallback');
+                console.warn('events.json not available, using fallback');
             }
 
-            const event = dataToEvent(data);
-            renderSections(event);
+            renderEvents(events);
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     initAnimations();
