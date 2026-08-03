@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bureau — Админка</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #08080e; --surface: #101018; --card: #16161f;
+            --border: rgba(255,255,255,0.07); --text: #e0e0ec;
+            --dim: rgba(255,255,255,0.45); --accent: #1d2ae6;
+            --accent-glow: rgba(29,42,230,0.25); --success: #22c55e;
+            --error: #ef4444; --font: 'Inter', sans-serif;
+            --warn: #f59e0b;
+        }
+        body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+
+        /* Login */
+        .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 20px; padding: 48px 40px; max-width: 420px; width: 100%; text-align: center;
+        }
+        .login-card h1 { font-size: 28px; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 6px; }
+        .login-card p { color: var(--dim); font-size: 14px; margin-bottom: 32px; }
+        .login-card input {
+            width: 100%; padding: 14px 16px; background: var(--bg);
+            border: 1px solid var(--border); border-radius: 10px;
+            color: var(--text); font-family: var(--font); font-size: 14px;
+            outline: none; margin-bottom: 16px;
+        }
+        .login-card input:focus { border-color: rgba(29,42,230,0.5); }
+        .login-card input::placeholder { color: var(--dim); }
+        .login-err { color: var(--error); font-size: 13px; margin-top: 8px; display: none; }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 12px 28px; font-family: var(--font); font-size: 13px;
+            font-weight: 600; border: none; border-radius: 999px; cursor: pointer;
+            transition: all 0.25s; width: 100%;
+        }
+        .btn-go { background: var(--accent); color: #fff; box-shadow: 0 4px 20px var(--accent-glow); }
+        .btn-go:hover { background: #2a38ff; transform: translateY(-1px); }
+        .btn-go:disabled { opacity: 0.5; cursor: wait; transform: none; }
+        .btn-out {
+            background: transparent; color: var(--dim); border: 1px solid var(--border);
+            width: auto; padding: 8px 20px; font-size: 12px;
+        }
+        .btn-out:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+        .btn-add {
+            background: var(--accent); color: #fff; border: none; border-radius: 999px;
+            padding: 10px 24px; font-family: var(--font); font-size: 13px; font-weight: 600;
+            cursor: pointer; transition: all 0.25s; display: inline-flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+        .btn-add:hover { background: #2a38ff; transform: translateY(-1px); }
+        .btn-del-event {
+            background: transparent; color: var(--error); border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 999px; padding: 7px 18px; font-family: var(--font); font-size: 11px;
+            font-weight: 600; cursor: pointer; transition: all 0.25s;
+        }
+        .btn-del-event:hover { background: var(--error); color: #fff; border-color: var(--error); }
+        .btn-save {
+            background: var(--success); color: #fff; border: none; border-radius: 999px;
+            padding: 7px 18px; font-family: var(--font); font-size: 11px;
+            font-weight: 600; cursor: pointer; transition: all 0.25s;
+        }
+        .btn-save:hover { transform: translateY(-1px); filter: brightness(1.1); }
+        .btn-save:disabled { opacity: 0.5; cursor: wait; transform: none; }
+        .btn-move {
+            background: transparent; color: var(--dim); border: 1px solid var(--border);
+            border-radius: 999px; padding: 5px 10px; font-family: var(--font); font-size: 11px;
+            cursor: pointer; transition: all 0.2s; line-height: 1;
+        }
+        .btn-move:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+        .btn-move:disabled { opacity: 0.2; cursor: default; }
+
+        .spinner {
+            width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Main */
+        .main { display: none; }
+        .main.on { display: block; }
+        .topbar {
+            background: var(--surface); border-bottom: 1px solid var(--border);
+            padding: 14px 24px; display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 50;
+        }
+        .topbar h1 { font-size: 14px; font-weight: 700; letter-spacing: 0.1em; }
+        .topbar h1 span { color: var(--accent); }
+        .topbar-right { display: flex; align-items: center; gap: 12px; }
+        .topbar-ok { font-size: 11px; color: var(--success); display: flex; align-items: center; gap: 6px; }
+        .topbar-ok::before { content: ''; width: 6px; height: 6px; background: var(--success); border-radius: 50%; }
+
+        .wrap { max-width: 900px; margin: 0 auto; padding: 32px 20px 80px; }
+
+        /* Add event area */
+        .add-area { text-align: center; margin-bottom: 32px; }
+
+        /* Event card */
+        .evt {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 16px; margin-bottom: 28px; overflow: hidden;
+            transition: border-color 0.3s;
+        }
+        .evt:hover { border-color: rgba(255,255,255,0.12); }
+        .evt-head {
+            padding: 18px 20px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        }
+        .evt-head-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+        .evt-num {
+            font-size: 11px; font-weight: 700; color: var(--accent);
+            background: var(--accent-glow); border-radius: 6px;
+            padding: 4px 8px; letter-spacing: 0.05em; flex-shrink: 0;
+        }
+        .evt-head h2 {
+            font-size: 14px; font-weight: 600; letter-spacing: 0.03em;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .evt-head-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+        /* Event fields */
+        .evt-fields { padding: 16px 20px; border-bottom: 1px solid var(--border); }
+        .evt-field { margin-bottom: 14px; }
+        .evt-field:last-child { margin-bottom: 0; }
+        .evt-field label {
+            display: block; font-size: 11px; font-weight: 600; color: var(--dim);
+            text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px;
+        }
+        .evt-field .hint {
+            font-size: 10px; color: rgba(255,255,255,0.25); font-weight: 400;
+            text-transform: none; letter-spacing: normal; margin-left: 8px;
+        }
+        .evt-field input, .evt-field textarea {
+            width: 100%; padding: 10px 14px; background: var(--bg);
+            border: 1px solid var(--border); border-radius: 8px;
+            color: var(--text); font-family: var(--font); font-size: 13px;
+            outline: none; transition: border-color 0.2s;
+        }
+        .evt-field input:focus, .evt-field textarea:focus { border-color: rgba(29,42,230,0.5); }
+        .evt-field textarea {
+            resize: vertical; min-height: 160px; line-height: 1.7;
+            font-size: 13px;
+        }
+
+        /* Photo count badge */
+        .photo-badge {
+            font-size: 11px; color: var(--dim); background: var(--bg);
+            padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border);
+        }
+
+        /* Photo grid */
+        .photos {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 6px; padding: 14px;
+        }
+        .photos:empty::after {
+            content: 'Нет фото — загрузите первые снимки'; display: block; text-align: center;
+            color: var(--dim); font-size: 13px; padding: 24px; grid-column: 1/-1;
+        }
+        .ph {
+            position: relative; aspect-ratio: 1; border-radius: 8px;
+            overflow: hidden; background: var(--bg);
+        }
+        .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .ph-x {
+            position: absolute; top: 5px; right: 5px; width: 22px; height: 22px;
+            background: rgba(0,0,0,0.75); color: #fff; border: none; border-radius: 50%;
+            font-size: 11px; cursor: pointer; display: grid; place-items: center;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .ph:hover .ph-x { opacity: 1; }
+        .ph-x:hover { background: var(--error); }
+
+        /* Upload */
+        .up {
+            margin: 6px 14px 14px; border: 2px dashed var(--border); border-radius: 12px;
+            padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s;
+            font-size: 13px; color: var(--dim);
+        }
+        .up:hover, .up.over { border-color: var(--accent); background: var(--accent-glow); }
+        .up strong { color: var(--accent); }
+        .up input { display: none; }
+        .up-hint { font-size: 11px; color: rgba(255,255,255,0.2); margin-top: 6px; }
+        .bar { height: 3px; background: var(--border); margin: 0 14px 10px; border-radius: 2px; overflow: hidden; display: none; }
+        .bar.on { display: block; }
+        .bar-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.3s; border-radius: 2px; }
+
+        /* Toast */
+        .toasts { position: fixed; top: 64px; right: 16px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+        .toast {
+            padding: 10px 18px; background: var(--card); border: 1px solid var(--border);
+            border-radius: 10px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            animation: tin 0.3s ease;
+        }
+        .toast.ok { border-left: 3px solid var(--success); }
+        .toast.err { border-left: 3px solid var(--error); }
+        .toast.out { animation: tout 0.3s ease forwards; }
+        @keyframes tin { from { opacity: 0; transform: translateX(30px); } }
+        @keyframes tout { to { opacity: 0; transform: translateX(30px); } }
+
+        /* Confirm */
+        .overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+            z-index: 500; display: none; align-items: center; justify-content: center; padding: 20px;
+        }
+        .overlay.on { display: flex; }
+        .dialog {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+            padding: 28px; max-width: 400px; width: 100%;
+        }
+        .dialog h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+        .dialog p { font-size: 13px; color: var(--dim); margin-bottom: 20px; line-height: 1.5; }
+        .dialog-btns { display: flex; gap: 10px; justify-content: flex-end; }
+        .dialog-btns button { padding: 8px 20px; border-radius: 999px; font-family: var(--font); font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
+        .dbtn-no { background: transparent; color: var(--dim); border: 1px solid var(--border); }
+        .dbtn-no:hover { color: var(--text); }
+        .dbtn-yes { background: var(--error); color: #fff; }
+        .dbtn-yes:hover { filter: brightness(1.1); }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center; padding: 60px 20px; color: var(--dim);
+        }
+        .empty-state .icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
+        .empty-state p { font-size: 14px; margin-bottom: 24px; }
+
+        @media (max-width: 640px) {
+            .login-card { padding: 32px 24px; }
+            .photos { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+            .evt-head { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .evt-head-right { width: 100%; justify-content: flex-end; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login" id="login">
+    <div class="login-card">
+        <h1>BUREAU</h1>
+        <p>Вставьте GitHub-токен для входа</p>
+        <input type="password" id="tok" placeholder="ghp_xxxxxxxxxxxx">
+        <button class="btn btn-go" id="goBtn" onclick="go()">Войти</button>
+        <div class="login-err" id="err"></div>
+    </div>
+</div>
+
+<!-- MAIN -->
+<div class="main" id="main">
+    <div class="topbar">
+        <h1><span>BUREAU</span> АДМИНКА</h1>
+        <div class="topbar-right">
+            <div class="topbar-ok" id="status"></div>
+            <button class="btn-out" onclick="out()">Выйти</button>
+        </div>
+    </div>
+    <div class="wrap" id="wrap"></div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<div class="overlay" id="ov"><div class="dialog" id="dlg"></div></div>
+
+<script>
+// ═══ CONFIG ═══
+let cfg = { token:'', owner:'', repo:'', branch:'main', base:'2 страница' };
+let data = null;
+let sha = null;
+
+// ═══ GITHUB API ═══
+function apiUrl(p) {
+    return `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${p.split('/').map(encodeURIComponent).join('/')}`;
+}
+function hdr() {
+    return { 'Authorization':'token '+cfg.token, 'Content-Type':'application/json', 'Accept':'application/vnd.github.v3+json' };
+}
+
+async function getFile(p) {
+    const r = await fetch(apiUrl(p), {headers:hdr()});
+    if (r.status===404) return null;
+    if (!r.ok) throw new Error('GitHub '+r.status);
+    const d = await r.json();
+    return { text: decodeURIComponent(escape(atob(d.content.replace(/\n/g,'')))), sha: d.sha };
+}
+
+async function putText(p, text, msg, s) {
+    const b = { message:msg, content:btoa(unescape(encodeURIComponent(text))), branch:cfg.branch };
+    if (s) b.sha = s;
+    const r = await fetch(apiUrl(p), {method:'PUT', headers:hdr(), body:JSON.stringify(b)});
+    if (!r.ok) throw new Error('PUT '+r.status);
+    return r.json();
+}
+
+async function putBin(p, b64, msg) {
+    const b = { message:msg, content:b64, branch:cfg.branch };
+    const r = await fetch(apiUrl(p), {method:'PUT', headers:hdr(), body:JSON.stringify(b)});
+    if (!r.ok) throw new Error('Upload '+r.status);
+    return r.json();
+}
+
+async function delFile(p, s, msg) {
+    const r = await fetch(apiUrl(p), {method:'DELETE', headers:hdr(), body:JSON.stringify({message:msg, sha:s, branch:cfg.branch})});
+    if (!r.ok) throw new Error('Delete '+r.status);
+}
+
+async function getSha(p) {
+    const r = await fetch(apiUrl(p), {headers:hdr()});
+    if (!r.ok) return null;
+    return (await r.json()).sha;
+}
+
+// ═══ DATA ═══
+function jp() { return cfg.base+'/events.json'; }
+
+function getEvent(eventId) {
+    let evt = data.events.find(e => e.id === eventId);
+    if (!evt) {
+        evt = { id: eventId, title: '', description: '', date: '', photos: [] };
+        data.events.push(evt);
+    }
+    return evt;
+}
+
+async function load() {
+    const f = await getFile(jp());
+    if (f) {
+        data = JSON.parse(f.text);
+        sha = f.sha;
+    } else {
+        data = { events: [] };
+        const r = await putText(jp(), JSON.stringify(data,null,2), 'Init events.json', null);
+        sha = r.content.sha;
+    }
+}
+
+async function save(msg) {
+    const r = await putText(jp(), JSON.stringify(data,null,2), msg, sha);
+    sha = r.content.sha;
+}
+
+// ═══ LOGIN ═══
+async function go() {
+    const token = document.getElementById('tok').value.trim();
+    if (!token) { errShow('Вставьте токен'); return; }
+
+    const btn = document.getElementById('goBtn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    errHide();
+
+    try {
+        const h = {'Authorization':'token '+token, 'Accept':'application/vnd.github.v3+json'};
+
+        const u = await fetch('https://api.github.com/user', {headers:h});
+        if (!u.ok) throw new Error('Неверный токен');
+        const user = await u.json();
+
+        let repo = null;
+        const rr = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {headers:h});
+        for (const r of await rr.json()) {
+            if (r.name.toLowerCase().includes('bureau')) { repo = r.name; break; }
+        }
+        if (!repo) throw new Error('Репозиторий с "bureau" не найден');
+
+        cfg = { token, owner:user.login, repo, branch:'main', base:'2 страница' };
+        await load();
+        localStorage.setItem('bt', token);
+
+        document.getElementById('login').style.display = 'none';
+        document.getElementById('main').classList.add('on');
+        document.getElementById('status').textContent = user.login+'/'+repo;
+        render();
+        toast('Подключено','ok');
+    } catch(e) {
+        errShow(e.message);
+    } finally {
+        btn.disabled = false; btn.textContent = 'Войти';
+    }
+}
+
+function out() {
+    localStorage.removeItem('bt');
+    document.getElementById('main').classList.remove('on');
+    document.getElementById('login').style.display = 'flex';
+}
+
+function errShow(m) { const e=document.getElementById('err'); e.textContent=m; e.style.display='block'; }
+function errHide() { document.getElementById('err').style.display='none'; }
+
+// ═══ ADD EVENT ═══
+async function addEvent() {
+    const id = 'event-' + Date.now();
+    data.events.push({
+        id: id,
+        title: 'Новое мероприятие',
+        description: '',
+        date: new Date().toISOString().slice(0,10),
+        photos: []
+    });
+    try {
+        await save('Добавлено мероприятие');
+        toast('Мероприятие добавлено', 'ok');
+    } catch(e) {
+        data.events.pop();
+        toast('Ошибка: ' + e.message, 'err');
+    }
+    render();
+}
+
+// ═══ SAVE EVENT INFO ═══
+async function saveEventInfo(eventId) {
+    const evt = getEvent(eventId);
+    const titleInput = document.getElementById('title-' + eventId);
+    const descInput = document.getElementById('desc-' + eventId);
+    if (titleInput) evt.title = titleInput.value;
+    if (descInput) evt.description = descInput.value;
+
+    const btn = document.querySelector(`[data-save="${eventId}"]`);
+    if (btn) { btn.disabled = true; btn.textContent = 'Сохраняю...'; }
+
+    try {
+        await save('Обновлено: ' + evt.title);
+        toast('Сохранено ✓', 'ok');
+    } catch(e) {
+        toast('Ошибка: ' + e.message, 'err');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Сохранить'; }
+    }
+}
+
+// ═══ MOVE EVENT ═══
+async function moveEvent(eventId, direction) {
+    const idx = data.events.findIndex(e => e.id === eventId);
+    if (idx < 0) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= data.events.length) return;
+
+    // Swap
+    [data.events[idx], data.events[newIdx]] = [data.events[newIdx], data.events[idx]];
+
+    try {
+        await save('Порядок мероприятий изменён');
+        toast('Порядок изменён', 'ok');
+    } catch(e) {
+        [data.events[idx], data.events[newIdx]] = [data.events[newIdx], data.events[idx]];
+        toast('Ошибка: ' + e.message, 'err');
+    }
+    render();
+}
+
+// ═══ DELETE EVENT ═══
+function confirmDelEvent(eventId) {
+    const evt = getEvent(eventId);
+    document.getElementById('dlg').innerHTML = `
+        <h3>Удалить мероприятие?</h3>
+        <p><strong>${esc(evt.title)}</strong><br>Все фото мероприятия будут удалены. Это действие нельзя отменить.</p>
+        <div class="dialog-btns">
+            <button class="dbtn-no" onclick="closeOv()">Отмена</button>
+            <button class="dbtn-yes" onclick="delEvent('${eventId}')">Удалить</button>
+        </div>`;
+    document.getElementById('ov').classList.add('on');
+}
+
+async function delEvent(eventId) {
+    closeOv();
+    const idx = data.events.findIndex(e => e.id === eventId);
+    if (idx < 0) return;
+
+    const evt = data.events[idx];
+    data.events.splice(idx, 1);
+
+    try {
+        for (const photo of evt.photos) {
+            if (photo.startsWith('photos/')) {
+                try {
+                    const s = await getSha(cfg.base + '/' + photo);
+                    if (s) await delFile(cfg.base + '/' + photo, s, 'Удалено: ' + photo.split('/').pop());
+                } catch(e) { /* ignore individual file errors */ }
+            }
+        }
+        await save('Удалено мероприятие: ' + evt.title);
+        toast('Мероприятие удалено', 'ok');
+    } catch(e) {
+        data.events.splice(idx, 0, evt);
+        toast('Ошибка: ' + e.message, 'err');
+    }
+    render();
+}
+
+// ═══ RENDER ═══
+function render() {
+    const w = document.getElementById('wrap');
+
+    if (data.events.length === 0) {
+        w.innerHTML = `
+        <div class="add-area">
+            <button class="btn-add" onclick="addEvent()">＋ Добавить мероприятие</button>
+        </div>
+        <div class="empty-state">
+            <div class="icon">📋</div>
+            <p>Пока нет мероприятий.<br>Добавьте первое, чтобы начать.</p>
+        </div>`;
+        return;
+    }
+
+    let html = `<div class="add-area">
+        <button class="btn-add" onclick="addEvent()">＋ Добавить мероприятие</button>
+    </div>`;
+
+    html += data.events.map((evt, i) => {
+        const num = String(i + 1).padStart(2, '0');
+        const isFirst = i === 0;
+        const isLast = i === data.events.length - 1;
+        return `
+        <div class="evt">
+            <div class="evt-head">
+                <div class="evt-head-left">
+                    <span class="evt-num">${num}</span>
+                    <h2>${esc(evt.title || 'Без названия')}</h2>
+                </div>
+                <div class="evt-head-right">
+                    <span class="photo-badge">${evt.photos.length} фото</span>
+                    <button class="btn-move" onclick="moveEvent('${evt.id}',-1)" ${isFirst ? 'disabled' : ''} title="Вверх">↑</button>
+                    <button class="btn-move" onclick="moveEvent('${evt.id}',1)" ${isLast ? 'disabled' : ''} title="Вниз">↓</button>
+                    <button class="btn-save" data-save="${evt.id}" onclick="saveEventInfo('${evt.id}')">Сохранить</button>
+                    <button class="btn-del-event" onclick="confirmDelEvent('${evt.id}')">Удалить</button>
+                </div>
+            </div>
+            <div class="evt-fields">
+                <div class="evt-field">
+                    <label>Название мероприятия</label>
+                    <input type="text" id="title-${evt.id}" value="${esc(evt.title || '')}" placeholder="Например: EGGsactly Love">
+                </div>
+                <div class="evt-field">
+                    <label>Описание <span class="hint">Каждый абзац с новой строки. Короткие строки станут акцентными.</span></label>
+                    <textarea id="desc-${evt.id}" placeholder="Расскажите историю мероприятия...\n\nКаждый абзац отделяйте пустой строкой.\n\nКороткие строки будут выделены как акцентные фразы.">${esc(evt.description || '')}</textarea>
+                </div>
+            </div>
+            <div class="photos" id="ph-${evt.id}">
+                ${evt.photos.map(p => `
+                    <div class="ph">
+                        <img src="${esc(p)}" alt="" loading="lazy" onerror="this.style.display='none'">
+                        <button class="ph-x" onclick="event.stopPropagation();confirmDel('${evt.id}','${esc(p)}')" title="Удалить">✕</button>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="bar" id="bar-${evt.id}"><div class="bar-fill" id="bf-${evt.id}"></div></div>
+            <div class="up"
+                 onclick="document.getElementById('f-${evt.id}').click()"
+                 ondragover="event.preventDefault();this.classList.add('over')"
+                 ondragleave="this.classList.remove('over')"
+                 ondrop="event.preventDefault();this.classList.remove('over');drop(event,'${evt.id}')">
+                <strong>Нажмите</strong> или перетащите фото сюда
+                <div class="up-hint">JPG, PNG, WebP — до 25 МБ каждое</div>
+                <input type="file" id="f-${evt.id}" accept="image/*" multiple onchange="upload(this.files,'${evt.id}')">
+            </div>
+        </div>`;
+    }).join('');
+
+    w.innerHTML = html;
+}
+
+// ═══ UPLOAD ═══
+function drop(e, eventId) { upload(e.dataTransfer.files, eventId); }
+
+async function upload(files, eventId) {
+    if (!files || !files.length) return;
+    const evt = getEvent(eventId);
+    const bar = document.getElementById('bar-' + eventId);
+    const fill = document.getElementById('bf-' + eventId);
+    bar.classList.add('on');
+
+    let ok = 0;
+    for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        if (!f.type.startsWith('image/')) { toast(f.name + ' — не фото', 'err'); continue; }
+        if (f.size > 25 * 1024 * 1024) { toast(f.name + ' > 25МБ', 'err'); continue; }
+        try {
+            const b64 = await toB64(f);
+            const name = f.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const path = `${cfg.base}/photos/${eventId}/${name}`;
+            const rel = `photos/${eventId}/${name}`;
+            await putBin(path, b64, 'Фото: ' + name);
+            evt.photos.push(rel);
+            ok++;
+            fill.style.width = ((i + 1) / files.length * 100) + '%';
+        } catch(e) { toast('Ошибка: ' + e.message, 'err'); }
+    }
+
+    if (ok > 0) {
+        try { await save('Загружено ' + ok + ' фото'); toast('Загружено ' + ok + ' фото', 'ok'); }
+        catch(e) { toast('Ошибка: ' + e.message, 'err'); }
+    }
+
+    setTimeout(() => { bar.classList.remove('on'); fill.style.width = '0'; }, 800);
+    render();
+    const inp = document.getElementById('f-' + eventId);
+    if (inp) inp.value = '';
+}
+
+function toB64(f) {
+    return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(f);
+    });
+}
+
+// ═══ DELETE PHOTO ═══
+function confirmDel(eventId, path) {
+    document.getElementById('dlg').innerHTML = `
+        <h3>Удалить фото?</h3>
+        <p>${path.split('/').pop()}</p>
+        <div class="dialog-btns">
+            <button class="dbtn-no" onclick="closeOv()">Отмена</button>
+            <button class="dbtn-yes" onclick="del('${eventId}','${esc(path)}')">Удалить</button>
+        </div>`;
+    document.getElementById('ov').classList.add('on');
+}
+
+function closeOv() { document.getElementById('ov').classList.remove('on'); }
+
+async function del(eventId, path) {
+    closeOv();
+    const evt = getEvent(eventId);
+    const idx = evt.photos.indexOf(path);
+    if (idx < 0) return;
+    evt.photos.splice(idx, 1);
+
+    try {
+        if (path.startsWith('photos/')) {
+            const s = await getSha(cfg.base + '/' + path);
+            if (s) await delFile(cfg.base + '/' + path, s, 'Удалено: ' + path.split('/').pop());
+        }
+        await save('Удалено фото');
+        toast('Фото удалено', 'ok');
+    } catch(e) {
+        evt.photos.splice(idx, 0, path);
+        toast('Ошибка: ' + e.message, 'err');
+    }
+    render();
+}
+
+// ═══ UTILS ═══
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function toast(m, t) {
+    const el = document.createElement('div');
+    el.className = 'toast ' + t; el.textContent = m;
+    document.getElementById('toasts').appendChild(el);
+    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 3000);
+}
+
+document.getElementById('ov').addEventListener('click', e => { if (e.target === e.currentTarget) closeOv(); });
+
+// ═══ INIT ═══
+const saved = localStorage.getItem('bt');
+if (saved) document.getElementById('tok').value = saved;
+</script>
+</body>
+</html>
