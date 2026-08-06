@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bureau | Premium Events</title>
     <link rel="icon" type="image/png" href="favicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=PT+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -59,6 +59,22 @@
             will-change: transform;
         }
 
+        /* Blur-up progressive loading */
+        .img-wrapper {
+            background-color: #111;
+        }
+        .img-wrapper img {
+            transition: filter 0.5s ease, opacity 0.5s ease;
+        }
+        .img-wrapper img.is-loading {
+            filter: blur(20px);
+            opacity: 0.6;
+        }
+        .img-wrapper img.is-loaded {
+            filter: blur(0);
+            opacity: 1;
+        }
+
         /* Пропорции для асимметричной сетки */
         .aspect-portrait { aspect-ratio: 3/4; }
         .aspect-landscape { aspect-ratio: 16/9; }
@@ -66,13 +82,13 @@
 
         /* ═══ Типографика описания мероприятия ═══ */
         .event-title {
-            font-family: 'PT Serif', Georgia, serif;
+            font-family: 'Bebas Neue', sans-serif;
             font-weight: 400;
-            font-size: clamp(2rem, 6vw, 4.5rem);
-            letter-spacing: 0.12em;
+            font-size: clamp(2.4rem, 7vw, 5.5rem);
+            letter-spacing: 0.14em;
             text-transform: uppercase;
             color: rgba(245, 245, 245, 0.95);
-            line-height: 1.1;
+            line-height: 1.05;
         }
 
         .event-description {
@@ -149,7 +165,7 @@
         // ═══════════════════════════════════════
         function photoEl(src, classes) {
             if (!src) return '';
-            return `<div class="img-wrapper ${classes}"><img src="${src}" alt="" loading="lazy"></div>`;
+            return `<div class="img-wrapper ${classes}"><img data-src="${src}" alt="" class="is-loading" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3C/svg%3E"></div>`;
         }
 
         // ═══════════════════════════════════════
@@ -379,6 +395,42 @@
         // ═══════════════════════════════════════
         // GSAP анимации (оригинальные)
         // ═══════════════════════════════════════
+        // ═══════════════════════════════════════
+        // Lazy-load фото через IntersectionObserver
+        // ═══════════════════════════════════════
+        function initLazyLoad() {
+            const images = document.querySelectorAll('img[data-src]');
+            if ('IntersectionObserver' in window) {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const img = entry.target;
+                            img.src = img.dataset.src;
+                            img.onload = () => {
+                                img.classList.remove('is-loading');
+                                img.classList.add('is-loaded');
+                            };
+                            img.onerror = () => {
+                                img.classList.remove('is-loading');
+                                img.classList.add('is-loaded');
+                            };
+                            observer.unobserve(img);
+                        }
+                    });
+                }, { rootMargin: '200px' });
+                images.forEach(img => observer.observe(img));
+            } else {
+                // Fallback: загрузить всё сразу
+                images.forEach(img => {
+                    img.src = img.dataset.src;
+                    img.onload = () => {
+                        img.classList.remove('is-loading');
+                        img.classList.add('is-loaded');
+                    };
+                });
+            }
+        }
+
         function initAnimations() {
             if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
             gsap.registerPlugin(ScrollTrigger);
@@ -474,6 +526,7 @@
             renderEvents(events);
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
+                    initLazyLoad();
                     initAnimations();
                 });
             });
