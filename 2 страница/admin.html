@@ -280,6 +280,9 @@
 let cfg = { token:'', owner:'', repo:'', branch:'main', base:'2 страница' };
 let data = null;
 let sha = null;
+// Локальные превью только что загруженных фото (data-URL), чтобы показать
+// картинку сразу, не дожидаясь появления файла на raw.githubusercontent CDN
+const localPreviews = {};
 
 // ═══ GITHUB API ═══
 function apiUrl(p) {
@@ -327,8 +330,24 @@ async function getSha(p) {
 function jp() { return cfg.base+'/events.json'; }
 
 function photoUrl(path) {
+    if (localPreviews[path]) return localPreviews[path];
     if (!cfg.owner || !cfg.repo) return path;
     return `https://raw.githubusercontent.com/${cfg.owner}/${cfg.repo}/${cfg.branch}/${encodeURIComponent(cfg.base)}/${path.split('/').map(encodeURIComponent).join('/')}?t=${Date.now()}`;
+}
+
+// Повторные попытки загрузить фото — свежий файл на raw.githubusercontent
+// CDN может появиться с задержкой в несколько секунд после коммита
+function retryImg(img) {
+    const n = parseInt(img.dataset.n || '0', 10);
+    if (n >= 4) {
+        img.outerHTML = '<div class="ph-placeholder">🖼</div>';
+        return;
+    }
+    img.dataset.n = n + 1;
+    const p = img.dataset.path;
+    setTimeout(() => {
+        img.src = photoUrl(p) + (photoUrl(p).indexOf('?') >= 0 ? '&' : '?') + 'r=' + Date.now();
+    }, 1500 * (n + 1));
 }
 
 function getEvent(eventId) {
@@ -557,7 +576,7 @@ function render() {
             <div class="photos" id="ph-${evt.id}">
                 ${evt.photos.map(p => `
                     <div class="ph">
-                        <img src="${photoUrl(p)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=ph-placeholder>🖼</div>'">
+                        <img src="${photoUrl(p)}" alt="" loading="lazy" data-path="${esc(p)}" data-n="0" onerror="retryImg(this)">
                         <button class="ph-x" onclick="event.stopPropagation();confirmDel('${evt.id}','${esc(p)}')" title="Удалить">✕</button>
                     </div>
                 `).join('')}
@@ -569,7 +588,7 @@ function render() {
                  ondragleave="this.classList.remove('over')"
                  ondrop="event.preventDefault();this.classList.remove('over');drop(event,'${evt.id}')">
                 <strong>Нажмите</strong> или перетащите фото сюда
-                <div class="up-hint">JPG, PNG, WebP — до 25 МБ каждое</div>
+                <div class="up-hint">JPG, PNG, WebP — сжимаются автоматически, можно прямо с телефона</div>
                 <input type="file" id="f-${evt.id}" accept="image/*" multiple onchange="upload(this.files,'${evt.id}')">
             </div>
         </div>`;
@@ -583,8 +602,8 @@ function drop(e, eventId) { upload(e.dataTransfer.files, eventId); }
 
 // ═══ COMPRESS IMAGE ═══
 function compressImage(file, maxWidth, quality) {
-    maxWidth = maxWidth || 1920;
-    quality = quality || 0.82;
+    maxWidth = maxWidth || 1600;
+    quality = quality || 0.75;
     return new Promise((res, rej) => {
         const reader = new FileReader();
         reader.onerror = rej;
@@ -628,12 +647,14 @@ async function upload(files, eventId) {
         if (!f.type.startsWith('image/')) { toast(f.name + ' — не фото', 'err'); continue; }
         if (f.size > 25 * 1024 * 1024) { toast(f.name + ' > 25МБ', 'err'); continue; }
         try {
-            const b64 = await compressImage(f, 1920, 0.82);
-            const baseName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.[^.]+$/, '') + '.jpg';
+            const b64 = await compressImage(f, 1600, 0.75);
+            const safe = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.[^.]+$/, '');
+            const baseName = safe + '-' + Date.now().toString(36) + i + '.jpg';
             const path = `${cfg.base}/photos/${eventId}/${baseName}`;
             const rel = `photos/${eventId}/${baseName}`;
             await putBin(path, b64, 'Фото: ' + baseName);
             evt.photos.push(rel);
+            localPreviews[rel] = 'data:image/jpeg;base64,' + b64;
             ok++;
             fill.style.width = ((i + 1) / files.length * 100) + '%';
         } catch(e) { toast('Ошибка: ' + e.message, 'err'); }
