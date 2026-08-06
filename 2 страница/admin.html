@@ -293,7 +293,9 @@ function hdr() {
 }
 
 async function getFile(p) {
-    const r = await fetch(apiUrl(p), {headers:hdr()});
+    // no-store + cache-bust: GitHub API отдаёт Cache-Control max-age=60,
+    // из-за чего браузер иначе показывает устаревший файл и старый sha
+    const r = await fetch(apiUrl(p) + '?t=' + Date.now(), {headers:hdr(), cache:'no-store'});
     if (r.status===404) return null;
     if (!r.ok) throw new Error('GitHub '+r.status);
     const d = await r.json();
@@ -321,7 +323,7 @@ async function delFile(p, s, msg) {
 }
 
 async function getSha(p) {
-    const r = await fetch(apiUrl(p), {headers:hdr()});
+    const r = await fetch(apiUrl(p) + '?t=' + Date.now(), {headers:hdr(), cache:'no-store'});
     if (!r.ok) return null;
     return (await r.json()).sha;
 }
@@ -372,8 +374,17 @@ async function load() {
 }
 
 async function save(msg) {
-    const r = await putText(jp(), JSON.stringify(data,null,2), msg, sha);
-    sha = r.content.sha;
+    try {
+        const r = await putText(jp(), JSON.stringify(data,null,2), msg, sha);
+        sha = r.content.sha;
+    } catch(e) {
+        // Устаревший sha (конфликт 409/422) — берём свежий и повторяем один раз,
+        // чтобы изменение всё равно сохранилось и ничего не «отскакивало» назад
+        const fresh = await getFile(jp());
+        sha = fresh ? fresh.sha : null;
+        const r = await putText(jp(), JSON.stringify(data,null,2), msg, sha);
+        sha = r.content.sha;
+    }
 }
 
 // ═══ LOGIN ═══

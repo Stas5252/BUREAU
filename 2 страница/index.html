@@ -525,19 +525,23 @@
         // INIT
         // ═══════════════════════════════════════
         document.addEventListener('DOMContentLoaded', async () => {
-            let events = FALLBACK_EVENTS;
+            // events.json — единственный источник истины (то, чем управляет админка).
+            // Fallback используется ТОЛЬКО если файл не удалось загрузить (нет сети).
+            let events = null;
 
             try {
-                const resp = await fetch('events.json?t=' + Date.now());
+                const resp = await fetch('events.json?t=' + Date.now(), { cache: 'no-store' });
                 if (resp.ok) {
                     const json = await resp.json();
-                    if (json.events && json.events.length > 0) {
+                    if (json && Array.isArray(json.events)) {
                         events = json.events;
                     }
                 }
             } catch (e) {
                 console.warn('events.json not available, using fallback');
             }
+
+            if (events === null) events = FALLBACK_EVENTS;
 
             renderEvents(events);
             requestAnimationFrame(() => {
