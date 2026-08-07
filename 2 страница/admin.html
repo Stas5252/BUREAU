@@ -153,6 +153,27 @@
             font-size: 13px;
         }
 
+        /* Индикатор несохранённых изменений */
+        .pending-box { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--dim); }
+        .pending-box.on { color: var(--warn); }
+        .pending-ok { color: var(--dim); font-size: 11px; }
+        .pending-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); flex-shrink: 0; animation: pulse 1.6s ease-in-out infinite; }
+        @keyframes pulse { 50% { opacity: 0.3; } }
+        .btn-publish {
+            background: var(--success); color: #fff; border: none; border-radius: 999px;
+            padding: 7px 18px; font-family: var(--font); font-size: 12px; font-weight: 600;
+            cursor: pointer; transition: all 0.25s; white-space: nowrap;
+        }
+        .btn-publish:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        .btn-publish:disabled { opacity: 0.5; cursor: wait; transform: none; }
+
+        /* Бейдж «новое» на ещё не сохранённом фото */
+        .ph-new {
+            position: absolute; bottom: 5px; left: 5px; background: var(--warn);
+            color: #000; font-size: 9px; font-weight: 700; padding: 2px 7px;
+            border-radius: 999px; letter-spacing: 0.04em; text-transform: uppercase;
+        }
+
         /* Photo count badge */
         .photo-badge {
             font-size: 11px; color: var(--dim); background: var(--bg);
@@ -265,6 +286,7 @@
     <div class="topbar">
         <h1><span>BUREAU</span> АДМИНКА</h1>
         <div class="topbar-right">
+            <div class="pending-box" id="pendingBox"></div>
             <div class="topbar-ok" id="status"></div>
             <button class="btn-out" onclick="out()">Выйти</button>
         </div>
@@ -283,6 +305,43 @@ let sha = null;
 // Локальные превью только что загруженных фото (data-URL), чтобы показать
 // картинку сразу, не дожидаясь появления файла на raw.githubusercontent CDN
 const localPreviews = {};
+
+// ═══ НЕСОХРАНЁННЫЕ ИЗМЕНЕНИЯ ═══
+// Всё копится здесь и уходит на GitHub ОДНИМ коммитом по кнопке «Сохранить».
+// Так одна загрузка из 30 фото = 1 сборка сайта, а не 31 (иначе GitHub
+// начинает душить аккаунт и деплой встаёт на часы).
+let pending = { adds: {}, dels: [], dirty: false };
+
+function markDirty() { pending.dirty = true; updatePendingUI(); }
+
+function pendingCount() {
+    return Object.keys(pending.adds).length + pending.dels.length + (pending.dirty ? 1 : 0);
+}
+function hasPending() { return pendingCount() > 0; }
+
+function updatePendingUI() {
+    const box = document.getElementById('pendingBox');
+    if (!box) return;
+    const nAdd = Object.keys(pending.adds).length;
+    const nDel = pending.dels.length;
+    if (!hasPending()) {
+        box.className = 'pending-box';
+        box.innerHTML = '<span class="pending-ok">Всё сохранено</span>';
+        return;
+    }
+    const parts = [];
+    if (nAdd) parts.push(nAdd + ' фото');
+    if (nDel) parts.push('удалено ' + nDel);
+    if (pending.dirty && !parts.length) parts.push('правки текста');
+    box.className = 'pending-box on';
+    box.innerHTML = `<span class="pending-dot"></span><span>Не сохранено: ${parts.join(', ')}</span>
+        <button class="btn-publish" id="publishBtn" onclick="publish()">Сохранить</button>`;
+}
+
+// Предупреждение при закрытии вкладки с несохранёнными правками
+window.addEventListener('beforeunload', e => {
+    if (hasPending()) { e.preventDefault(); e.returnValue = ''; }
+});
 
 // ═══ GITHUB API ═══
 function apiUrl(p) {
@@ -310,22 +369,57 @@ async function putText(p, text, msg, s) {
     return r.json();
 }
 
-async function putBin(p, b64, msg) {
-    const b = { message:msg, content:b64, branch:cfg.branch };
-    const r = await fetch(apiUrl(p), {method:'PUT', headers:hdr(), body:JSON.stringify(b)});
-    if (!r.ok) throw new Error('Upload '+r.status);
+// ═══ GIT DATA API — один коммит на любое число файлов ═══
+// Blob'ы сами по себе коммитов не создают, поэтому сколько бы фото ни было,
+// сборка сайта запускается ровно один раз (в самом конце, на updateRef).
+function gitUrl(sub) {
+    return `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/git/${sub}`;
+}
+
+async function gitReq(sub, method, body) {
+    const o = { method, headers: hdr(), cache: 'no-store' };
+    if (body) o.body = JSON.stringify(body);
+    const url = gitUrl(sub) + (method === 'GET' ? '?t=' + Date.now() : '');
+    const r = await fetch(url, o);
+    if (!r.ok) {
+        let detail = '';
+        try { detail = (await r.json()).message || ''; } catch(e) {}
+        const err = new Error('GitHub ' + r.status + (detail ? ': ' + detail : ''));
+        err.status = r.status;
+        throw err;
+    }
     return r.json();
 }
 
-async function delFile(p, s, msg) {
-    const r = await fetch(apiUrl(p), {method:'DELETE', headers:hdr(), body:JSON.stringify({message:msg, sha:s, branch:cfg.branch})});
-    if (!r.ok) throw new Error('Delete '+r.status);
+async function createBlob(b64) {
+    const d = await gitReq('blobs', 'POST', { content: b64, encoding: 'base64' });
+    return d.sha;
 }
 
-async function getSha(p) {
-    const r = await fetch(apiUrl(p) + '?t=' + Date.now(), {headers:hdr(), cache:'no-store'});
-    if (!r.ok) return null;
-    return (await r.json()).sha;
+function textToB64(text) { return btoa(unescape(encodeURIComponent(text))); }
+
+// files: [{path, b64}] — добавить/заменить; deletions: [path] — удалить
+async function commitBatch(message, files, deletions) {
+    const ref = await gitReq('ref/heads/' + cfg.branch, 'GET');
+    const headSha = ref.object.sha;
+    const headCommit = await gitReq('commits/' + headSha, 'GET');
+
+    const tree = [];
+    for (const f of files) {
+        const sha = await createBlob(f.b64);
+        tree.push({ path: f.path, mode: '100644', type: 'blob', sha });
+    }
+    for (const p of deletions) {
+        tree.push({ path: p, mode: '100644', type: 'blob', sha: null });
+    }
+    if (!tree.length) return null;
+
+    const newTree = await gitReq('trees', 'POST', { base_tree: headCommit.tree.sha, tree });
+    const commit = await gitReq('commits', 'POST', {
+        message, tree: newTree.sha, parents: [headSha]
+    });
+    await gitReq('refs/heads/' + cfg.branch, 'PATCH', { sha: commit.sha });
+    return commit.sha;
 }
 
 // ═══ DATA ═══
@@ -373,17 +467,60 @@ async function load() {
     }
 }
 
-async function save(msg) {
+// Забираем текст из полей ввода в data (поля не привязаны реактивно),
+// иначе несохранённые правки других мероприятий потерялись бы при публикации
+function syncInputs() {
+    data.events.forEach(evt => {
+        const t = document.getElementById('title-' + evt.id);
+        const d = document.getElementById('desc-' + evt.id);
+        if (t) evt.title = t.value;
+        if (d) evt.description = d.value;
+    });
+}
+
+// ═══ ПУБЛИКАЦИЯ: всё накопленное уходит ОДНИМ коммитом ═══
+async function publish() {
+    syncInputs();
+    if (!hasPending()) { toast('Нечего сохранять', 'ok'); return; }
+
+    const btn = document.getElementById('publishBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Сохраняю...'; }
+
+    // Снимок на случай ошибки — чтобы ничего не потерялось и можно было повторить
+    const addsSnapshot = Object.assign({}, pending.adds);
+    const delsSnapshot = pending.dels.slice();
+
+    const files = [{ path: jp(), b64: textToB64(JSON.stringify(data, null, 2)) }];
+    for (const rel in addsSnapshot) {
+        files.push({ path: cfg.base + '/' + rel, b64: addsSnapshot[rel] });
+    }
+    const dels = delsSnapshot.map(rel => cfg.base + '/' + rel);
+
+    const nAdd = Object.keys(addsSnapshot).length;
+    const msgParts = [];
+    if (nAdd) msgParts.push('+' + nAdd + ' фото');
+    if (dels.length) msgParts.push('-' + dels.length + ' фото');
+    const msg = 'Обновление сайта' + (msgParts.length ? ' (' + msgParts.join(', ') + ')' : '');
+
     try {
-        const r = await putText(jp(), JSON.stringify(data,null,2), msg, sha);
-        sha = r.content.sha;
+        try {
+            await commitBatch(msg, files, dels);
+        } catch(e) {
+            // Ветка уехала вперёд (админка с другого устройства) — берём свежий
+            // HEAD и повторяем один раз, чтобы правки не потерялись
+            if (e.status === 409 || e.status === 422) await commitBatch(msg, files, dels);
+            else throw e;
+        }
+        pending = { adds: {}, dels: [], dirty: false };
+        // Локальные превью оставляем: файл на CDN появляется с задержкой
+        const f = await getFile(jp());
+        if (f) sha = f.sha;
+        toast('Сохранено ✓ Сайт обновится за 1–2 мин', 'ok');
     } catch(e) {
-        // Устаревший sha (конфликт 409/422) — берём свежий и повторяем один раз,
-        // чтобы изменение всё равно сохранилось и ничего не «отскакивало» назад
-        const fresh = await getFile(jp());
-        sha = fresh ? fresh.sha : null;
-        const r = await putText(jp(), JSON.stringify(data,null,2), msg, sha);
-        sha = r.content.sha;
+        toast('Ошибка: ' + e.message + ' — изменения не потеряны, попробуйте ещё раз', 'err');
+    } finally {
+        updatePendingUI();
+        render();
     }
 }
 
@@ -435,64 +572,30 @@ function out() {
 function errShow(m) { const e=document.getElementById('err'); e.textContent=m; e.style.display='block'; }
 function errHide() { document.getElementById('err').style.display='none'; }
 
-// ═══ ADD EVENT ═══
-async function addEvent() {
-    const id = 'event-' + Date.now();
+// ═══ ADD EVENT (локально) ═══
+function addEvent() {
+    syncInputs();
     data.events.push({
-        id: id,
+        id: 'event-' + Date.now(),
         title: 'Новое мероприятие',
         description: '',
         date: new Date().toISOString().slice(0,10),
         photos: []
     });
-    try {
-        await save('Добавлено мероприятие');
-        toast('Мероприятие добавлено', 'ok');
-    } catch(e) {
-        data.events.pop();
-        toast('Ошибка: ' + e.message, 'err');
-    }
+    markDirty();
     render();
 }
 
-// ═══ SAVE EVENT INFO ═══
-async function saveEventInfo(eventId) {
-    const evt = getEvent(eventId);
-    const titleInput = document.getElementById('title-' + eventId);
-    const descInput = document.getElementById('desc-' + eventId);
-    if (titleInput) evt.title = titleInput.value;
-    if (descInput) evt.description = descInput.value;
-
-    const btn = document.querySelector(`[data-save="${eventId}"]`);
-    if (btn) { btn.disabled = true; btn.textContent = 'Сохраняю...'; }
-
-    try {
-        await save('Обновлено: ' + evt.title);
-        toast('Сохранено ✓', 'ok');
-    } catch(e) {
-        toast('Ошибка: ' + e.message, 'err');
-    } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Сохранить'; }
-    }
-}
-
-// ═══ MOVE EVENT ═══
-async function moveEvent(eventId, direction) {
+// ═══ MOVE EVENT (локально) ═══
+function moveEvent(eventId, direction) {
+    syncInputs();
     const idx = data.events.findIndex(e => e.id === eventId);
     if (idx < 0) return;
     const newIdx = idx + direction;
     if (newIdx < 0 || newIdx >= data.events.length) return;
 
-    // Swap
     [data.events[idx], data.events[newIdx]] = [data.events[newIdx], data.events[idx]];
-
-    try {
-        await save('Порядок мероприятий изменён');
-        toast('Порядок изменён', 'ok');
-    } catch(e) {
-        [data.events[idx], data.events[newIdx]] = [data.events[newIdx], data.events[idx]];
-        toast('Ошибка: ' + e.message, 'err');
-    }
+    markDirty();
     render();
 }
 
@@ -509,35 +612,35 @@ function confirmDelEvent(eventId) {
     document.getElementById('ov').classList.add('on');
 }
 
-async function delEvent(eventId) {
+function delEvent(eventId) {
     closeOv();
+    syncInputs();
     const idx = data.events.findIndex(e => e.id === eventId);
     if (idx < 0) return;
 
     const evt = data.events[idx];
+    // Фото мероприятия помечаем к удалению (реально удалятся при «Сохранить»)
+    evt.photos.forEach(p => queuePhotoDelete(p));
     data.events.splice(idx, 1);
-
-    try {
-        for (const photo of evt.photos) {
-            if (photo.startsWith('photos/')) {
-                try {
-                    const s = await getSha(cfg.base + '/' + photo);
-                    if (s) await delFile(cfg.base + '/' + photo, s, 'Удалено: ' + photo.split('/').pop());
-                } catch(e) { /* ignore individual file errors */ }
-            }
-        }
-        await save('Удалено мероприятие: ' + evt.title);
-        toast('Мероприятие удалено', 'ok');
-    } catch(e) {
-        data.events.splice(idx, 0, evt);
-        toast('Ошибка: ' + e.message, 'err');
-    }
+    markDirty();
     render();
+}
+
+// Пометить фото к удалению. Если оно ещё не загружено на GitHub —
+// просто выбрасываем из очереди загрузки, удалять на сервере нечего.
+function queuePhotoDelete(rel) {
+    if (pending.adds[rel]) {
+        delete pending.adds[rel];
+        delete localPreviews[rel];
+        return;
+    }
+    if (rel.startsWith('photos/') && pending.dels.indexOf(rel) < 0) pending.dels.push(rel);
 }
 
 // ═══ RENDER ═══
 function render() {
     const w = document.getElementById('wrap');
+    updatePendingUI();
 
     if (data.events.length === 0) {
         w.innerHTML = `
@@ -570,24 +673,25 @@ function render() {
                     <span class="photo-badge">${evt.photos.length} фото</span>
                     <button class="btn-move" onclick="moveEvent('${evt.id}',-1)" ${isFirst ? 'disabled' : ''} title="Вверх">↑</button>
                     <button class="btn-move" onclick="moveEvent('${evt.id}',1)" ${isLast ? 'disabled' : ''} title="Вниз">↓</button>
-                    <button class="btn-save" data-save="${evt.id}" onclick="saveEventInfo('${evt.id}')">Сохранить</button>
+                    <button class="btn-save" data-save="${evt.id}" onclick="publish()">Сохранить</button>
                     <button class="btn-del-event" onclick="confirmDelEvent('${evt.id}')">Удалить</button>
                 </div>
             </div>
             <div class="evt-fields">
                 <div class="evt-field">
                     <label>Название мероприятия</label>
-                    <input type="text" id="title-${evt.id}" value="${esc(evt.title || '')}" placeholder="Например: EGGsactly Love">
+                    <input type="text" id="title-${evt.id}" value="${esc(evt.title || '')}" oninput="markDirty()" placeholder="Например: EGGsactly Love">
                 </div>
                 <div class="evt-field">
                     <label>Описание <span class="hint">Каждый абзац с новой строки. Короткие строки станут акцентными.</span></label>
-                    <textarea id="desc-${evt.id}" placeholder="Расскажите историю мероприятия...\n\nКаждый абзац отделяйте пустой строкой.\n\nКороткие строки будут выделены как акцентные фразы.">${esc(evt.description || '')}</textarea>
+                    <textarea id="desc-${evt.id}" oninput="markDirty()" placeholder="Расскажите историю мероприятия...\n\nКаждый абзац отделяйте пустой строкой.\n\nКороткие строки будут выделены как акцентные фразы.">${esc(evt.description || '')}</textarea>
                 </div>
             </div>
             <div class="photos" id="ph-${evt.id}">
                 ${evt.photos.map(p => `
                     <div class="ph">
                         <img src="${photoUrl(p)}" alt="" loading="lazy" data-path="${esc(p)}" data-n="0" onerror="retryImg(this)">
+                        ${pending.adds[p] ? '<span class="ph-new">новое</span>' : ''}
                         <button class="ph-x" onclick="event.stopPropagation();confirmDel('${evt.id}','${esc(p)}')" title="Удалить">✕</button>
                     </div>
                 `).join('')}
@@ -652,6 +756,8 @@ async function upload(files, eventId) {
     const fill = document.getElementById('bf-' + eventId);
     bar.classList.add('on');
 
+    // Фото только сжимаются и кладутся в очередь — на GitHub они уедут
+    // одним коммитом при нажатии «Сохранить»
     let ok = 0;
     for (let i = 0; i < files.length; i++) {
         const f = files[i];
@@ -661,10 +767,9 @@ async function upload(files, eventId) {
             const b64 = await compressImage(f, 1600, 0.75);
             const safe = f.name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/\.[^.]+$/, '');
             const baseName = safe + '-' + Date.now().toString(36) + i + '.jpg';
-            const path = `${cfg.base}/photos/${eventId}/${baseName}`;
             const rel = `photos/${eventId}/${baseName}`;
-            await putBin(path, b64, 'Фото: ' + baseName);
             evt.photos.push(rel);
+            pending.adds[rel] = b64;
             localPreviews[rel] = 'data:image/jpeg;base64,' + b64;
             ok++;
             fill.style.width = ((i + 1) / files.length * 100) + '%';
@@ -672,23 +777,14 @@ async function upload(files, eventId) {
     }
 
     if (ok > 0) {
-        try { await save('Загружено ' + ok + ' фото'); toast('Загружено ' + ok + ' фото', 'ok'); }
-        catch(e) { toast('Ошибка: ' + e.message, 'err'); }
+        markDirty();
+        toast(ok + ' фото готово — нажмите «Сохранить»', 'ok');
     }
 
     setTimeout(() => { bar.classList.remove('on'); fill.style.width = '0'; }, 800);
     render();
     const inp = document.getElementById('f-' + eventId);
     if (inp) inp.value = '';
-}
-
-function toB64(f) {
-    return new Promise((res, rej) => {
-        const r = new FileReader();
-        r.onload = () => res(r.result.split(',')[1]);
-        r.onerror = rej;
-        r.readAsDataURL(f);
-    });
 }
 
 // ═══ DELETE PHOTO ═══
@@ -705,24 +801,15 @@ function confirmDel(eventId, path) {
 
 function closeOv() { document.getElementById('ov').classList.remove('on'); }
 
-async function del(eventId, path) {
+function del(eventId, path) {
     closeOv();
+    syncInputs();
     const evt = getEvent(eventId);
     const idx = evt.photos.indexOf(path);
     if (idx < 0) return;
     evt.photos.splice(idx, 1);
-
-    try {
-        if (path.startsWith('photos/')) {
-            const s = await getSha(cfg.base + '/' + path);
-            if (s) await delFile(cfg.base + '/' + path, s, 'Удалено: ' + path.split('/').pop());
-        }
-        await save('Удалено фото');
-        toast('Фото удалено', 'ok');
-    } catch(e) {
-        evt.photos.splice(idx, 0, path);
-        toast('Ошибка: ' + e.message, 'err');
-    }
+    queuePhotoDelete(path);
+    markDirty();
     render();
 }
 
