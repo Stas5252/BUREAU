@@ -118,10 +118,13 @@
             font-family: 'CourierCyrPS', 'Courier New', monospace;
             font-size: clamp(0.95rem, 2vw, 1.15rem);
             font-weight: 400;
-            line-height: 1.85;
+            line-height: 1.8;
             color: rgba(245, 245, 245, 0.55);
-            margin-bottom: 1.6em;
+            margin-bottom: 0.8em;
             text-align: center;
+            /* Ровные строки без «висячих» коротких хвостов — центрированный
+               моноширинный текст иначе рвётся ступеньками */
+            text-wrap: pretty;
         }
 
         .event-description p:last-child {
@@ -138,8 +141,30 @@
         .event-description p.accent-line {
             font-size: clamp(1.15rem, 2.6vw, 1.5rem);
             color: rgba(245, 245, 245, 0.75);
-            margin-top: 2em;
-            margin-bottom: 2em;
+            margin-top: 1em;
+            margin-bottom: 1em;
+        }
+
+        /* Телефон: моноширинный шрифт широкий, и на узком экране длинные
+           русские слова ломали строку в неудобных местах. Чуть уменьшаем
+           кегль и убираем разрядку — в строку помещается больше слов */
+        @media (max-width: 640px) {
+            .event-description {
+                max-width: 34ch;
+            }
+            .event-description p {
+                font-size: 0.9rem;
+                line-height: 1.7;
+                letter-spacing: -0.02em;
+            }
+            .event-description p:first-child {
+                font-size: 1rem;
+            }
+            .event-description p.accent-line {
+                font-size: 1rem;
+                margin-top: 0.9em;
+                margin-bottom: 0.9em;
+            }
         }
 
         /* Обложка мероприятия — крупное фото под заголовком */
