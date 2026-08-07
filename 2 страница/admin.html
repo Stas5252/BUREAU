@@ -751,7 +751,7 @@ function render() {
                 </div>
                 <div class="cover-info">
                     <label>Обложка ${evt.cover && pending.adds[evt.cover] ? '<span style="color:var(--warn)">• новое</span>' : ''}</label>
-                    <p>Крупное фото под названием мероприятия на сайте.<br>Если не задана — сразу идёт описание.</p>
+                    <p>Крупное фото перед названием мероприятия на сайте.<br>Если не задана — сразу идёт название.</p>
                 </div>
                 <div class="cover-btns">
                     <button class="btn-cover" onclick="document.getElementById('cf-${evt.id}').click()">${evt.cover ? 'Заменить' : 'Загрузить'}</button>
