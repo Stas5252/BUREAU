@@ -467,6 +467,20 @@ async function load() {
     }
 }
 
+// Пишем текст в data сразу при наборе. Без этого любая перерисовка
+// (например, после загрузки фото) восстанавливала поля из data и стирала
+// только что набранный, ещё не сохранённый текст.
+function onFieldInput(el) {
+    const isTitle = el.id.indexOf('title-') === 0;
+    const evtId = el.id.slice(isTitle ? 6 : 5);
+    const evt = data.events.find(e => e.id === evtId);
+    if (evt) {
+        if (isTitle) evt.title = el.value;
+        else evt.description = el.value;
+    }
+    markDirty();
+}
+
 // Забираем текст из полей ввода в data (поля не привязаны реактивно),
 // иначе несохранённые правки других мероприятий потерялись бы при публикации
 function syncInputs() {
@@ -564,7 +578,12 @@ async function go() {
 }
 
 function out() {
+    if (hasPending() && !confirm('Есть несохранённые изменения. Выйти и потерять их?')) return;
     localStorage.removeItem('bt');
+    // Чистим состояние и разметку: иначе при повторном входе старые поля
+    // могли бы затереть свежие данные, загруженные с GitHub
+    pending = { adds: {}, dels: [], dirty: false };
+    document.getElementById('wrap').innerHTML = '';
     document.getElementById('main').classList.remove('on');
     document.getElementById('login').style.display = 'flex';
 }
@@ -680,11 +699,11 @@ function render() {
             <div class="evt-fields">
                 <div class="evt-field">
                     <label>Название мероприятия</label>
-                    <input type="text" id="title-${evt.id}" value="${esc(evt.title || '')}" oninput="markDirty()" placeholder="Например: EGGsactly Love">
+                    <input type="text" id="title-${evt.id}" value="${esc(evt.title || '')}" oninput="onFieldInput(this)" placeholder="Например: EGGsactly Love">
                 </div>
                 <div class="evt-field">
                     <label>Описание <span class="hint">Каждый абзац с новой строки. Короткие строки станут акцентными.</span></label>
-                    <textarea id="desc-${evt.id}" oninput="markDirty()" placeholder="Расскажите историю мероприятия...\n\nКаждый абзац отделяйте пустой строкой.\n\nКороткие строки будут выделены как акцентные фразы.">${esc(evt.description || '')}</textarea>
+                    <textarea id="desc-${evt.id}" oninput="onFieldInput(this)" placeholder="Расскажите историю мероприятия...\n\nКаждый абзац отделяйте пустой строкой.\n\nКороткие строки будут выделены как акцентные фразы.">${esc(evt.description || '')}</textarea>
                 </div>
             </div>
             <div class="photos" id="ph-${evt.id}">
@@ -751,6 +770,7 @@ function compressImage(file, maxWidth, quality) {
 
 async function upload(files, eventId) {
     if (!files || !files.length) return;
+    syncInputs();   // текст из полей — в data, иначе render() в конце его затрёт
     const evt = getEvent(eventId);
     const bar = document.getElementById('bar-' + eventId);
     const fill = document.getElementById('bf-' + eventId);
