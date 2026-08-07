@@ -180,6 +180,42 @@
             padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border);
         }
 
+        /* Обложка мероприятия */
+        .cover-row {
+            display: flex; align-items: center; gap: 14px;
+            padding: 14px 20px; border-bottom: 1px solid var(--border);
+        }
+        .cover-thumb {
+            width: 120px; height: 80px; border-radius: 8px; overflow: hidden;
+            background: var(--bg); flex-shrink: 0; position: relative;
+            border: 1px solid var(--border);
+        }
+        .cover-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .cover-empty {
+            width: 100%; height: 100%; display: grid; place-items: center;
+            color: rgba(255,255,255,0.2); font-size: 22px;
+        }
+        .cover-info { flex: 1; min-width: 0; }
+        .cover-info label {
+            display: block; font-size: 11px; font-weight: 600; color: var(--dim);
+            text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 4px;
+        }
+        .cover-info p { font-size: 11px; color: rgba(255,255,255,0.28); line-height: 1.5; }
+        .cover-btns { display: flex; gap: 8px; flex-shrink: 0; }
+        .btn-cover {
+            background: transparent; color: var(--accent); border: 1px solid rgba(29,42,230,0.4);
+            border-radius: 999px; padding: 7px 16px; font-family: var(--font);
+            font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.25s; white-space: nowrap;
+        }
+        .btn-cover:hover { background: var(--accent); color: #fff; }
+        .btn-cover.rm { color: var(--error); border-color: rgba(239,68,68,0.3); }
+        .btn-cover.rm:hover { background: var(--error); color: #fff; }
+        @media (max-width: 640px) {
+            .cover-row { flex-wrap: wrap; }
+            .cover-info { flex-basis: calc(100% - 134px); }
+            .cover-btns { width: 100%; justify-content: flex-end; }
+        }
+
         /* Photo grid */
         .photos {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -638,8 +674,9 @@ function delEvent(eventId) {
     if (idx < 0) return;
 
     const evt = data.events[idx];
-    // Фото мероприятия помечаем к удалению (реально удалятся при «Сохранить»)
+    // Фото мероприятия и обложку помечаем к удалению (реально удалятся при «Сохранить»)
     evt.photos.forEach(p => queuePhotoDelete(p));
+    if (evt.cover) queuePhotoDelete(evt.cover);
     data.events.splice(idx, 1);
     markDirty();
     render();
@@ -706,6 +743,22 @@ function render() {
                     <textarea id="desc-${evt.id}" oninput="onFieldInput(this)" placeholder="Расскажите историю мероприятия...\n\nКаждый абзац отделяйте пустой строкой.\n\nКороткие строки будут выделены как акцентные фразы.">${esc(evt.description || '')}</textarea>
                 </div>
             </div>
+            <div class="cover-row">
+                <div class="cover-thumb">
+                    ${evt.cover
+                        ? `<img src="${photoUrl(evt.cover)}" alt="" data-path="${esc(evt.cover)}" data-n="0" onerror="retryImg(this)">`
+                        : `<div class="cover-empty">🖼</div>`}
+                </div>
+                <div class="cover-info">
+                    <label>Обложка ${evt.cover && pending.adds[evt.cover] ? '<span style="color:var(--warn)">• новое</span>' : ''}</label>
+                    <p>Крупное фото под названием мероприятия на сайте.<br>Если не задана — сразу идёт описание.</p>
+                </div>
+                <div class="cover-btns">
+                    <button class="btn-cover" onclick="document.getElementById('cf-${evt.id}').click()">${evt.cover ? 'Заменить' : 'Загрузить'}</button>
+                    ${evt.cover ? `<button class="btn-cover rm" onclick="delCover('${evt.id}')">Убрать</button>` : ''}
+                    <input type="file" id="cf-${evt.id}" accept="image/*" style="display:none" onchange="uploadCover(this.files,'${evt.id}')">
+                </div>
+            </div>
             <div class="photos" id="ph-${evt.id}">
                 ${evt.photos.map(p => `
                     <div class="ph">
@@ -733,6 +786,49 @@ function render() {
 
 // ═══ UPLOAD ═══
 function drop(e, eventId) { upload(e.dataTransfer.files, eventId); }
+
+// ═══ ОБЛОЖКА МЕРОПРИЯТИЯ ═══
+// Отдельное фото, показывается крупно под названием на сайте.
+// Живёт в той же очереди, что и обычные фото — уходит тем же одним коммитом.
+async function uploadCover(files, eventId) {
+    if (!files || !files.length) return;
+    syncInputs();
+    const evt = getEvent(eventId);
+    const f = files[0];
+
+    if (!f.type.startsWith('image/')) { toast(f.name + ' — не фото', 'err'); return; }
+    if (f.size > 25 * 1024 * 1024) { toast(f.name + ' > 25МБ', 'err'); return; }
+
+    try {
+        const b64 = await compressImage(f, 1600, 0.75);
+        // Кириллица в имени превращалась бы в «______», поэтому такие имена
+        // отбрасываем и оставляем просто cover-<метка времени>
+        const safe = f.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '');
+        const rel = `photos/${eventId}/cover${safe ? '-' + safe : ''}-${Date.now().toString(36)}.jpg`;
+
+        if (evt.cover) queuePhotoDelete(evt.cover);   // старую обложку убираем
+        evt.cover = rel;
+        pending.adds[rel] = b64;
+        localPreviews[rel] = 'data:image/jpeg;base64,' + b64;
+        markDirty();
+        toast('Обложка готова — нажмите «Сохранить»', 'ok');
+    } catch(e) {
+        toast('Ошибка: ' + e.message, 'err');
+    }
+    render();
+    const inp = document.getElementById('cf-' + eventId);
+    if (inp) inp.value = '';
+}
+
+function delCover(eventId) {
+    syncInputs();
+    const evt = getEvent(eventId);
+    if (!evt.cover) return;
+    queuePhotoDelete(evt.cover);
+    delete evt.cover;
+    markDirty();
+    render();
+}
 
 // ═══ COMPRESS IMAGE ═══
 function compressImage(file, maxWidth, quality) {
