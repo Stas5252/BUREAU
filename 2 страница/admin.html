@@ -497,9 +497,20 @@ async function load() {
         data = JSON.parse(f.text);
         sha = f.sha;
     } else {
+        // Файла нет — пробуем создать. Если и это не выходит, значит выбран
+        // не тот репозиторий (пустой/чужой) или у токена нет прав на запись.
+        // Раньше здесь наружу летело невнятное «PUT 404».
         data = { events: [] };
-        const r = await putText(jp(), JSON.stringify(data,null,2), 'Init events.json', null);
-        sha = r.content.sha;
+        try {
+            const r = await putText(jp(), JSON.stringify(data,null,2), 'Init events.json', null);
+            sha = r.content.sha;
+        } catch(e) {
+            throw new Error(
+                'В репозитории ' + cfg.owner + '/' + cfg.repo + ' нет файла «' + jp() + '», ' +
+                'и создать его не удалось. Обычно это значит, что выбран не тот репозиторий ' +
+                '(например, пустой) или у токена нет прав на запись.'
+            );
+        }
     }
 }
 
@@ -588,22 +599,43 @@ async function go() {
 
         const u = await fetch('https://api.github.com/user', {headers:h});
         if (!u.ok) throw new Error('Неверный токен');
-        const user = await u.json();
 
-        let repo = null;
+        // Репозиториев со словом «bureau» может быть несколько. Раньше брался
+        // первый по дате обновления — и админка уезжала в посторонний (например,
+        // свежесозданный пустой) репозиторий, откуда шли 404. Теперь выбираем
+        // тот, где реально лежит сайт.
         const rr = await fetch('https://api.github.com/user/repos?per_page=100&sort=updated', {headers:h});
-        for (const r of await rr.json()) {
-            if (r.name.toLowerCase().includes('bureau')) { repo = r.name; break; }
-        }
-        if (!repo) throw new Error('Репозиторий с "bureau" не найден');
+        const all = await rr.json();
+        if (!Array.isArray(all)) throw new Error('Не удалось получить список репозиториев');
 
-        cfg = { token, owner:user.login, repo, branch:'main', base:'2 страница' };
+        const candidates = all.filter(r => r.name.toLowerCase().includes('bureau'));
+        if (!candidates.length) throw new Error('Репозиторий с «bureau» не найден');
+
+        const BASE = '2 страница';
+        const enc = p => p.split('/').map(encodeURIComponent).join('/');
+        const exists = async (r, path) => {
+            try {
+                const t = await fetch(`https://api.github.com/repos/${r.owner.login}/${r.name}/contents/${enc(path)}`, {headers:h});
+                return t.ok;
+            } catch(e) { return false; }
+        };
+
+        let chosen = null;
+        for (const r of candidates) { if (await exists(r, BASE + '/events.json')) { chosen = r; break; } }
+        if (!chosen) for (const r of candidates) { if (await exists(r, BASE)) { chosen = r; break; } }
+        if (!chosen) chosen = candidates.find(r => r.name.toLowerCase() === 'bureau');
+        if (!chosen) {
+            throw new Error('Сайт не найден. Подходящие репозитории: ' +
+                candidates.map(r => r.name).join(', ') + ' — ни в одном нет папки «' + BASE + '»');
+        }
+
+        cfg = { token, owner:chosen.owner.login, repo:chosen.name, branch:chosen.default_branch || 'main', base:BASE };
         await load();
         localStorage.setItem('bt', token);
 
         document.getElementById('login').style.display = 'none';
         document.getElementById('main').classList.add('on');
-        document.getElementById('status').textContent = user.login+'/'+repo;
+        document.getElementById('status').textContent = cfg.owner+'/'+cfg.repo;
         render();
         toast('Подключено','ok');
     } catch(e) {
