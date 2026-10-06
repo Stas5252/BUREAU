@@ -82,6 +82,7 @@ body {
   margin: 0 auto;
   position: relative;
   overflow: hidden;
+  container-type: inline-size;
 }
 
 #bureau { aspect-ratio: 1920 / 11883; }
@@ -151,11 +152,81 @@ body {
 }
 
 .logo-btn--bureau {
-  left: 28.2813%;
-  top: 16.0185%;
-  width: 39.2851%;
-  height: 25.5556%;
-  --logo: url("assets/sections/logo-bureau.png");
+  left: 27%;
+  top: 13.5%;
+  width: 42%;
+  height: 31.5%;
+  padding: 1cqw;
+  isolation: isolate;
+}
+
+.logo-btn--bureau::after {
+  display: none;
+}
+
+.logo-btn--bureau img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* The menu artwork contains the previous wordmark. Cover its entire footprint
+   with the same empty paper texture, then render the supplied Russian SVG. */
+.bureau-menu-texture {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.bureau-menu-texture span {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: calc(25% + 1px);
+  background-image: url("assets/sections/menu-1920.webp");
+  background-size: 100cqw 56.25cqw;
+  background-position: -27cqw -50.5cqw;
+  background-repeat: no-repeat;
+}
+
+.bureau-menu-texture span:nth-child(1) { top: 0; }
+.bureau-menu-texture span:nth-child(2) { top: 25%; }
+.bureau-menu-texture span:nth-child(3) { top: 50%; }
+.bureau-menu-texture span:nth-child(4) { top: 75%; }
+
+/* This section is also flattened artwork. The replacement stays aligned with
+   its original logo area at every viewport size, without changing the copy. */
+.bureau-wordmark {
+  position: absolute;
+  left: 20.8%;
+  top: 11.1cqw;
+  width: 77%;
+  height: 28.5cqw;
+  padding: 0.5cqw;
+  background: #f2dfce;
+  pointer-events: none;
+}
+
+.bureau-wordmark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: left center;
+}
+
+@media (max-width: 960px) {
+  .bureau-menu-texture span {
+    background-image: url("assets/sections/menu-960.webp");
+  }
+}
+
+@media (max-width: 640px) {
+  .bureau-menu-texture span {
+    background-image: url("assets/sections/menu-640.webp");
+  }
 }
 
 .logo-btn--pink {
@@ -215,6 +286,16 @@ body {
 
 .projects-btn:hover .projects-btn__arrow {
   transform: translateX(5px);
+}
+
+@media (max-width: 640px) {
+  .projects-btn {
+    top: auto;
+    bottom: 8px;
+    right: 12px;
+    padding: 8px 16px;
+    font-size: 10px;
+  }
 }
 
 .footer {

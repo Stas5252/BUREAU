@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Бюро</title>
-    <link rel="icon" href="favicon.png?v=5" type="image/png" />
+    <link rel="icon" href="favicon.svg?v=ru-1" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -64,7 +64,7 @@
         window.addEventListener("pagehide", forceTop);
       })();
     </script>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=ru-1" />
   </head>
   <body>
     <!-- Focus trap at the top to prevent jumping to bottom elements -->
@@ -89,14 +89,19 @@
             src="assets/sections/menu.png"
             width="1920"
             height="1080"
-            alt="Меню BUREAU"
+            alt="Меню Бюро"
             fetchpriority="high"
             decoding="async"
           />
         </picture>
 
         <a class="logo-btn logo-btn--red" href="#rocket-anchor" aria-label="Ракета"></a>
-        <a class="logo-btn logo-btn--bureau" href="#bureau-anchor" aria-label="BUREAU"></a>
+        <a class="logo-btn logo-btn--bureau" href="#bureau-anchor" aria-label="Бюро">
+          <span class="bureau-menu-texture" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+          </span>
+          <img src="assets/brand/bureau-ru.svg" alt="" width="766" height="378" fetchpriority="high" />
+        </a>
         <a class="logo-btn logo-btn--pink" href="#pifpaf-anchor" aria-label="ПИФПАФ"></a>
         <a class="logo-btn logo-btn--sh" href="#shust-anchor" aria-label="ШУСТ"></a>
         <a class="projects-btn" href="2%20%D1%81%D1%82%D1%80%D0%B0%D0%BD%D0%B8%D1%86%D0%B0/index.html">
@@ -105,15 +110,18 @@
         </a>
       </section>
 
-      <section id="bureau" class="section" aria-label="BUREAU">
+      <section id="bureau" class="section" aria-label="Бюро">
         <div id="bureau-anchor" class="section-anchor" style="--y: 0%;"></div>
+        <div class="bureau-wordmark" aria-hidden="true">
+          <img src="assets/brand/bureau-ru.svg" alt="" width="766" height="378" />
+        </div>
         <picture>
           <img
             class="section__img"
             src="assets/sections/bureau.png?v=2"
             width="1920"
             height="11883"
-            alt="BUREAU"
+            alt="Бюро"
             loading="lazy"
             fetchpriority="low"
             decoding="async"
@@ -203,8 +211,8 @@
         <div class="footer__brand">
           <img
             class="footer__logo-img"
-            src="assets/footer-bureau.png"
-            alt="BUREAU"
+            src="assets/brand/bureau-ru.svg"
+            alt="Бюро"
             loading="lazy"
           />
           <div class="footer__logo-sub">[БЮРО]</div>

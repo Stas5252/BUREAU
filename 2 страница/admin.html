@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bureau — Админка</title>
-    <link rel="icon" type="image/png" href="favicon.png">
+    <title>Бюро — Админка</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg?v=ru-1">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,6 +19,9 @@
         body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
+
+        .brand-logo { display: inline-block; width: 90px; height: auto; vertical-align: middle; }
+        .brand-logo--login { width: 160px; }
 
         /* Login */
         .login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -309,7 +312,7 @@
 <!-- LOGIN -->
 <div class="login" id="login">
     <div class="login-card">
-        <h1>BUREAU</h1>
+        <h1><img class="brand-logo brand-logo--login" src="../assets/brand/bureau-ru-white.png" alt="Бюро" width="160" height="79"></h1>
         <p>Вставьте GitHub-токен для входа</p>
         <input type="password" id="tok" placeholder="ghp_xxxxxxxxxxxx">
         <button class="btn btn-go" id="goBtn" onclick="go()">Войти</button>
@@ -320,7 +323,7 @@
 <!-- MAIN -->
 <div class="main" id="main">
     <div class="topbar">
-        <h1><span>BUREAU</span> АДМИНКА</h1>
+        <h1><img class="brand-logo" src="../assets/brand/bureau-ru.svg" alt="Бюро" width="90" height="44"> АДМИНКА</h1>
         <div class="topbar-right">
             <div class="pending-box" id="pendingBox"></div>
             <div class="topbar-ok" id="status"></div>
